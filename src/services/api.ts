@@ -12,8 +12,16 @@ import { getAuthToken } from './storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+const PUBLIC_TUNNEL_URL = 'https://misc-spotlight-yoga-mpegs.trycloudflare.com';
+const LOCAL_LAN_URL = 'http://192.168.1.3:3000';
+
 function resolveApiBaseUrl(): string {
-  // Extract host IP dynamically if running on a physical device in Expo Go
+  // 1. Explicit environment variable (injected by Expo from .env)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
+  }
+
+  // 2. Extract host from Expo Go runtime
   const hostUri =
     Constants.expoConfig?.hostUri ||
     (Constants as any).manifest?.debuggerHost ||
@@ -22,14 +30,17 @@ function resolveApiBaseUrl(): string {
 
   if (hostUri && typeof hostUri === 'string') {
     const clean = hostUri.replace(/^exp:\/\//, '').replace(/^https?:\/\//, '');
-    const ip = clean.split(':')[0];
-    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
-      return `http://${ip}:3000`;
+    const host = clean.split(':')[0];
+
+    // Only if it's a real numeric IPv4 address (e.g. 192.168.1.3), use port 3000 on LAN
+    const isNumericIpv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
+    if (isNumericIpv4 && host !== '127.0.0.1' && host !== 'localhost') {
+      return `http://${host}:3000`;
     }
   }
 
-  // Always fallback to your Mac's active Wi-Fi LAN IP so all physical devices connect
-  return 'http://192.168.1.3:3000';
+  // 3. If running via tunnel (exp.direct / ngrok) or fallback, use active HTTPS tunnel
+  return PUBLIC_TUNNEL_URL;
 }
 
 export const DEFAULT_API_URL = resolveApiBaseUrl();
@@ -67,11 +78,8 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Core HTTP request handler
- */
-export async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const url = `${currentBaseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+async function executeFetch(baseUrl: string, endpoint: string, options: RequestOptions = {}): Promise<any> {
+  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -90,7 +98,7 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 10000);
+  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 15000);
 
   try {
     const response = await fetch(url, {
@@ -113,24 +121,52 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
       );
     }
 
-    return data as T;
-  } catch (error: any) {
+    return data;
+  } catch (err: any) {
     clearTimeout(timeoutId);
+    throw err;
+  }
+}
 
-    if (error.name === 'AbortError') {
-      throw new ApiError('Request timed out. Please check your connection.', 408, 'TIMEOUT');
-    }
-
-    if (error instanceof ApiError) {
+/**
+ * Core HTTP request handler with automatic fallback between HTTPS Tunnel and LAN IP
+ */
+export async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  // First attempt on primary currentBaseUrl
+  try {
+    const result = await executeFetch(currentBaseUrl, endpoint, options);
+    return result as T;
+  } catch (error: any) {
+    // If it's a server response error (4xx/5xx from API), don't retry, return real error
+    if (error instanceof ApiError && error.statusCode > 0) {
       throw error;
     }
 
-    // Network / offline error
-    throw new ApiError(
-      error.message || 'Unable to connect to server. Please ensure server is running.',
-      0,
-      'NETWORK_ERROR'
-    );
+    // Network error / connection aborted: try alternate connection route
+    const alternateUrl = currentBaseUrl.includes('trycloudflare.com')
+      ? LOCAL_LAN_URL
+      : PUBLIC_TUNNEL_URL;
+
+    try {
+      const fallbackResult = await executeFetch(alternateUrl, endpoint, options);
+      // Switch active URL since fallback succeeded
+      currentBaseUrl = alternateUrl;
+      return fallbackResult as T;
+    } catch (fallbackError: any) {
+      if (fallbackError instanceof ApiError && fallbackError.statusCode > 0) {
+        throw fallbackError;
+      }
+
+      if (error.name === 'AbortError' || fallbackError.name === 'AbortError') {
+        throw new ApiError('Request timed out. Please check your internet connection.', 408, 'TIMEOUT');
+      }
+
+      throw new ApiError(
+        'Unable to reach CecureUs server. Please verify your internet connection and try again.',
+        0,
+        'NETWORK_ERROR'
+      );
+    }
   }
 }
 
