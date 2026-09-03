@@ -32,13 +32,13 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login, isLoading } = useAuth();
 
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (!phone.trim()) {
-      setError('Please enter your phone number');
+    if (!identifier.trim()) {
+      setError('Please enter your phone number or email');
       return;
     }
     if (!password.trim()) {
@@ -47,7 +47,7 @@ export default function LoginScreen() {
     }
     setError('');
     try {
-      await login(phone, password);
+      await login(identifier.trim(), password);
       router.replace('/(tabs)');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
@@ -94,12 +94,13 @@ export default function LoginScreen() {
             )}
 
             <Input
-              label="Phone Number"
-              placeholder="+91 98765 43210"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              leftIcon={<Ionicons name="call-outline" size={20} color={colors.textMuted} />}
+              label="Phone Number or Email"
+              placeholder="e.g. 9840893911 or your@email.com"
+              value={identifier}
+              onChangeText={setIdentifier}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              leftIcon={<Ionicons name="person-outline" size={20} color={colors.textMuted} />}
             />
 
             <Input

@@ -144,6 +144,34 @@ async function findAccountByPhone(phone) {
   return rows[0] || null;
 }
 
+async function findAccountByIdentifier(identifier) {
+  if (!identifier) return null;
+  const raw = String(identifier).trim();
+
+  // If email format
+  if (raw.includes('@')) {
+    const [rows] = await db.query(
+      'SELECT * FROM accounts WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL LIMIT 1',
+      [raw]
+    );
+    return rows[0] || null;
+  }
+
+  // Normalized phone format
+  const digitsOnly = raw.replace(/\D/g, '');
+  const tenDigits = digitsOnly.length > 10 ? digitsOnly.slice(-10) : digitsOnly;
+  const withPlus91 = `+91${tenDigits}`;
+
+  const [rows] = await db.query(
+    `SELECT * FROM accounts 
+     WHERE (phone = ? OR phone = ? OR phone = ? OR phone = ?) 
+       AND deleted_at IS NULL 
+     LIMIT 1`,
+    [raw, digitsOnly, tenDigits, withPlus91]
+  );
+  return rows[0] || null;
+}
+
 async function findAccountById(id) {
   const [rows] = await db.query(
     'SELECT id, name, phone, email, phone_verified, email_verified, status, created_at FROM accounts WHERE id = ? AND deleted_at IS NULL',
@@ -152,12 +180,12 @@ async function findAccountById(id) {
   return rows[0] || null;
 }
 
-async function login(phone, password, metadata = {}) {
-  const account = await findAccountByPhone(phone);
+async function login(identifier, password, metadata = {}) {
+  const account = await findAccountByIdentifier(identifier);
 
   if (!account) {
     await verifyPassword(password, DUMMY_HASH);
-    const error = new Error('Invalid phone number or password');
+    const error = new Error('Invalid phone number/email or password');
     error.statusCode = 401;
     error.code = 'INVALID_CREDENTIALS';
     throw error;
@@ -193,7 +221,7 @@ async function login(phone, password, metadata = {}) {
   }
 
   await db.query(
-    'UPDATE accounts SET failed_login_attempts = 0, locked_until = NULL, last_login_at = CURRENT_TIMESTAMP WHERE id = ?',
+    'UPDATE accounts SET failed_login_attempts = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     [account.id]
   );
 

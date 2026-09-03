@@ -219,7 +219,13 @@ router.post(
   '/login',
   authLimiter,
   [
-    body('phone').trim().notEmpty().withMessage('Phone number is required'),
+    body().custom((value, { req }) => {
+      const identifier = req.body.identifier || req.body.phone || req.body.email;
+      if (!identifier || !String(identifier).trim()) {
+        throw new Error('Phone number or email is required');
+      }
+      return true;
+    }),
     body('password').notEmpty().withMessage('Password is required'),
   ],
   async (req, res, next) => {
@@ -227,8 +233,9 @@ router.post(
       const valError = handleValidationErrors(req, res);
       if (valError) return;
 
-      const { phone, password } = req.body;
-      const result = await authService.login(phone, password, {
+      const identifier = req.body.identifier || req.body.phone || req.body.email;
+      const { password } = req.body;
+      const result = await authService.login(identifier, password, {
         deviceInfo: req.headers['user-agent'],
         ipAddress: req.ip,
       });

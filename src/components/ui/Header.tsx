@@ -7,7 +7,7 @@
  * - Notification bell with active red badge on right
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../../constants/theme';
 import { useRouter } from 'expo-router';
+import { Logo } from './Logo';
+import { SideDrawer } from './SideDrawer';
+import { NotificationsModal } from './NotificationsModal';
 
 interface HeaderProps {
   title?: string;
@@ -26,8 +29,6 @@ interface HeaderProps {
   style?: ViewStyle;
 }
 
-import { Logo } from './Logo';
-
 export const Header: React.FC<HeaderProps> = ({
   title,
   showBack = false,
@@ -35,6 +36,9 @@ export const Header: React.FC<HeaderProps> = ({
   style,
 }) => {
   const router = useRouter();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(true);
 
   const handleBack = () => {
     if (onBack) {
@@ -45,36 +49,59 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <View style={[styles.container, style]}>
-      {showBack ? (
+    <>
+      <View style={[styles.container, style]}>
+        {showBack ? (
+          <TouchableOpacity
+            onPress={handleBack}
+            style={styles.iconButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.iconButton}
+            activeOpacity={0.7}
+            onPress={() => setDrawerOpen(true)}
+          >
+            <Ionicons name="menu-outline" size={24} color={colors.text} />
+          </TouchableOpacity>
+        )}
+
+        {title ? (
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {title}
+          </Text>
+        ) : (
+          <Logo size={28} variant="horizontal" />
+        )}
+
         <TouchableOpacity
-          onPress={handleBack}
           style={styles.iconButton}
           activeOpacity={0.7}
+          onPress={() => setNotificationsOpen(true)}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <View style={styles.bellWrapper}>
+            <Ionicons name="notifications-outline" size={22} color={colors.text} />
+            {hasUnread && <View style={styles.notificationDot} />}
+          </View>
         </TouchableOpacity>
-      ) : (
-        <TouchableOpacity style={styles.iconButton} activeOpacity={0.7}>
-          <Ionicons name="menu-outline" size={24} color={colors.text} />
-        </TouchableOpacity>
-      )}
+      </View>
 
-      {title ? (
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {title}
-        </Text>
-      ) : (
-        <Logo size={28} variant="horizontal" />
-      )}
+      {/* Interactive Side Drawer */}
+      <SideDrawer
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
 
-      <TouchableOpacity style={styles.iconButton} activeOpacity={0.7}>
-        <View style={styles.bellWrapper}>
-          <Ionicons name="notifications-outline" size={22} color={colors.text} />
-          <View style={styles.notificationDot} />
-        </View>
-      </TouchableOpacity>
-    </View>
+      {/* Interactive Notifications Sheet */}
+      <NotificationsModal
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        onAllRead={() => setHasUnread(false)}
+      />
+    </>
   );
 };
 

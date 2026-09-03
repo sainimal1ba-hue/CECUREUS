@@ -37,7 +37,7 @@ export default function HomeScreen() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [moodSaved, setMoodSaved] = useState<boolean>(false);
 
-  const firstName = user?.name ? user.name.split(' ')[0] : 'Harsha';
+  const firstName = user?.name ? user.name.split(' ')[0] : 'there';
 
   const handleMoodSelect = async (moodKey: 'great' | 'good' | 'okay' | 'low' | 'bad') => {
     setSelectedMood(moodKey);

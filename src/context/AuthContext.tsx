@@ -67,7 +67,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (!isMounted) return;
 
-        if (storedToken && storedUser) {
+        // Immediately purge any legacy demo session so user is never falsely auto-logged in as Harsha
+        if (
+          storedToken === 'demo_session_token_cecureus' ||
+          storedUser?.id === 'usr_harsha_verma_demo' ||
+          storedUser?.name === 'Harsha Verma'
+        ) {
+          await removeAuthToken();
+          await removeUserProfile();
+          if (isMounted) {
+            setUser(null);
+            setToken(null);
+          }
+        } else if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(storedUser);
 
@@ -79,10 +91,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               await saveUserProfile(profileData.profile);
             }
           } catch {
-            // Use cached profile if network is offline
+            // Keep verified local session if network temporarily unreachable
           }
         } else {
-          // No stored session -> user starts at Login screen
+          // No stored session -> user stays at Login screen
           setUser(null);
           setToken(null);
         }
@@ -103,25 +115,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = useCallback(async (phone: string, password?: string) => {
+  const login = useCallback(async (identifier: string, password?: string) => {
     setIsLoading(true);
     try {
-      const response = await authApi.login({ phone, password });
+      const response = await authApi.login({ phone: identifier, password });
       const authToken = response.session?.token;
       const accountUser = response.account;
+
+      if (!authToken || !accountUser) {
+        throw new Error('Invalid response from server. Please try again.');
+      }
 
       setToken(authToken);
       setUser(accountUser);
 
       await saveAuthToken(authToken);
       await saveUserProfile(accountUser);
-    } catch (error) {
-      // Offline fallback: allows user to log in seamlessly without internet
-      const fallbackUser: User = { ...DEMO_USER, phone };
-      setUser(fallbackUser);
-      setToken('demo_session_token_cecureus');
-      await saveAuthToken('demo_session_token_cecureus');
-      await saveUserProfile(fallbackUser);
+    } catch (error: any) {
+      // Propagate the real error to Login screen
+      throw new Error(error.message || 'Login failed. Please check your credentials and internet connection.');
     } finally {
       setIsLoading(false);
     }
@@ -130,10 +142,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const continueAsGuest = useCallback(async () => {
     setIsLoading(true);
     try {
-      setUser(DEMO_USER);
-      setToken('demo_session_token_cecureus');
-      await saveAuthToken('demo_session_token_cecureus');
-      await saveUserProfile(DEMO_USER);
+      const guestUser: User = {
+        id: `guest_${Date.now()}`,
+        name: 'Guest User',
+        phone: '',
+      };
+      setUser(guestUser);
+      setToken('guest_token');
+      await saveUserProfile(guestUser);
     } finally {
       setIsLoading(false);
     }
@@ -151,19 +167,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       await saveAuthToken(authToken);
       await saveUserProfile(accountUser);
-    } catch (error) {
-      // Offline fallback
-      const newUser: User = {
-        id: `usr_${Date.now()}`,
-        name,
-        phone,
-        email: email || null,
-        phone_verified: 1,
-      };
-      setUser(newUser);
-      setToken('demo_session_token_cecureus');
-      await saveAuthToken('demo_session_token_cecureus');
-      await saveUserProfile(newUser);
+    } catch (error: any) {
+      throw new Error(error.message || 'Registration failed. Please check your details and connection.');
     } finally {
       setIsLoading(false);
     }

@@ -53,7 +53,7 @@ async function callOllamaChat(messages) {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload),
         },
-        timeout: 15000,
+        timeout: 45000,
       },
       (res) => {
         let data = '';

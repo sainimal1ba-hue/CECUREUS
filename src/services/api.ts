@@ -239,14 +239,14 @@ export const assessmentApi = {
 
 export const allyApi = {
   getConversations: () =>
-    apiRequest('/api/ally/conversations', { method: 'GET' }),
+    apiRequest('/api/ally/conversations', { method: 'GET', timeoutMs: 20000 }),
 
   startConversation: (data: { topic?: string; initialMessage?: string }) =>
-    apiRequest('/api/ally/conversations', { method: 'POST', body: data }),
+    apiRequest('/api/ally/conversations', { method: 'POST', body: data, timeoutMs: 45000 }),
 
   getConversation: (id: string) =>
-    apiRequest(`/api/ally/conversations/${id}`, { method: 'GET' }),
+    apiRequest(`/api/ally/conversations/${id}`, { method: 'GET', timeoutMs: 20000 }),
 
   sendMessage: (conversationId: string, content: string) =>
-    apiRequest(`/api/ally/conversations/${conversationId}/messages`, { method: 'POST', body: { content } }),
+    apiRequest(`/api/ally/conversations/${conversationId}/messages`, { method: 'POST', body: { content }, timeoutMs: 45000 }),
 };
