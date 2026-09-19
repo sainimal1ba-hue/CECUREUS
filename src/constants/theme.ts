@@ -155,3 +155,54 @@ export const shadows = {
     elevation: 6,
   },
 };
+
+// Compatibility exports for theme consumers (app-tabs, themed-text, themed-view, use-theme, etc.)
+export const Spacing = {
+  ...spacing,
+  half: 4,
+  one: 8,
+  two: 12,
+  three: 16,
+  four: 20,
+  five: 24,
+  six: 32,
+  seven: 40,
+};
+
+export const MaxContentWidth = 1200;
+
+export const Fonts = {
+  regular: 'System',
+  bold: 'System',
+  medium: 'System',
+  mono: 'Courier',
+};
+
+export const Colors = {
+  light: {
+    ...colors,
+    backgroundElement: '#F1F5F9',
+    backgroundSelected: '#E6F7F5',
+    link: '#00A99D',
+    linkPrimary: '#008B80',
+  },
+  dark: {
+    ...colors,
+    background: '#0B1120',
+    surface: '#1E293B',
+    surfaceSubtle: '#334155',
+    surfaceElevated: '#1E293B',
+    text: '#F8FAFC',
+    textSecondary: '#94A3B8',
+    textMuted: '#64748B',
+    border: '#334155',
+    borderLight: '#1E293B',
+    backgroundElement: '#334155',
+    backgroundSelected: '#1E293B',
+    link: '#33BAB0',
+    linkPrimary: '#33BAB0',
+  },
+};
+
+export type ThemeColor = keyof typeof Colors.light;
+
