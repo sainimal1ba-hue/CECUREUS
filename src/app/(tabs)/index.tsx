@@ -59,9 +59,11 @@ export default function HomeScreen() {
     <ScreenContainer>
       {/* Greeting Header */}
       <View style={styles.headerSection}>
-        <View>
+        <View style={styles.greetingTextCol}>
           <Text style={styles.greetingSub}>Welcome back,</Text>
-          <Text style={styles.greetingTitle}>Hi, {firstName} 👋</Text>
+          <Text style={styles.greetingTitle} numberOfLines={1}>
+            Hi, {firstName} 👋
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.allyShortcut}
@@ -71,7 +73,9 @@ export default function HomeScreen() {
           <View style={styles.allyIconBadge}>
             <Text style={styles.allyIconBadgeText}>🤖</Text>
           </View>
-          <Text style={styles.allyShortcutText}>Talk to Ally</Text>
+          <Text style={styles.allyShortcutText} numberOfLines={1}>
+            Talk to Ally
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -125,9 +129,9 @@ export default function HomeScreen() {
           onPress={() => router.push('/(tabs)/counsellor')}
         >
           <View style={[styles.quickIconBg, { backgroundColor: '#E0F2FE' }]}>
-            <Ionicons name="calendar-outline" size={24} color="#0284C7" />
+            <Ionicons name="chatbubbles-outline" size={24} color="#0284C7" />
           </View>
-          <Text style={styles.quickCardTitle}>Book Session</Text>
+          <Text style={styles.quickCardTitle}>Talk to us</Text>
           <Text style={styles.quickCardDesc}>Speak 1-on-1 with a psychologist</Text>
         </Card>
 
@@ -172,6 +176,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.xs,
   },
+  greetingTextCol: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
   greetingSub: {
     ...typography.caption,
     color: colors.textMuted,
@@ -185,10 +193,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#E6F7F5',
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderRadius: borderRadius.full,
     borderWidth: 1,
     borderColor: '#B2EBF2',
+    flexShrink: 0,
   },
   allyIconBadge: {
     marginRight: 6,
