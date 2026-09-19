@@ -10,7 +10,8 @@
 import React from 'react';
 import { View, Image, StyleSheet, ViewStyle, ImageStyle } from 'react-native';
 
-const LOGO_FULL = require('../../../assets/images/cecureus_logo.png');
+const LOGO_VERTICAL = require('../../../assets/images/cecureus_logo.png');
+const LOGO_HORIZONTAL = require('../../../assets/images/cecureus_logo_horizontal.png');
 const LOGO_ICON = require('../../../assets/images/cecureus_icon.png');
 
 export interface LogoProps {
@@ -31,9 +32,9 @@ export const Logo: React.FC<LogoProps> = ({
   const isIconOnly = variant === 'icon' || !showText;
 
   if (isIconOnly) {
-    // Aspect ratio of icon is ~ 50 x 62 (width:height ~ 0.8)
+    // Aspect ratio of icon mark is 263 x 323 (width:height ~ 0.814)
     const iconHeight = size;
-    const iconWidth = Math.round(size * 0.8);
+    const iconWidth = Math.round(size * 0.814);
 
     return (
       <View style={[styles.container, style]}>
@@ -46,15 +47,31 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  // Aspect ratio of full logo is ~ 107 x 92 (width:height ~ 1.16)
-  const fullHeight = size;
-  const fullWidth = Math.round(size * 1.16);
+  if (variant === 'horizontal') {
+    // Aspect ratio of horizontal logo is 790 x 180 (width:height ~ 4.39)
+    const horizHeight = size;
+    const horizWidth = Math.round(size * 4.39);
+
+    return (
+      <View style={[styles.container, style]}>
+        <Image
+          source={LOGO_HORIZONTAL}
+          style={[{ width: horizWidth, height: horizHeight }, imageStyle]}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
+
+  // Vertical lockup (Icon on top, wordmark below): 512 x 443 (width:height ~ 1.156)
+  const vertHeight = size;
+  const vertWidth = Math.round(size * 1.156);
 
   return (
     <View style={[styles.container, style]}>
       <Image
-        source={LOGO_FULL}
-        style={[{ width: fullWidth, height: fullHeight }, imageStyle]}
+        source={LOGO_VERTICAL}
+        style={[{ width: vertWidth, height: vertHeight }, imageStyle]}
         resizeMode="contain"
       />
     </View>
