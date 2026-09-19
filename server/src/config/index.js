@@ -71,6 +71,12 @@ const config = {
   },
 
   sms: {
+    provider: env.SMS_PROVIDER || 'twilio',
+    twilioAccountSid: env.TWILIO_ACCOUNT_SID || '',
+    twilioApiKey: env.TWILIO_API_KEY || '',
+    twilioApiSecret: env.TWILIO_API_SECRET || '',
+    twilioPhoneNumber: env.TWILIO_PHONE_NUMBER || '',
+    twilioMessagingServiceSid: env.TWILIO_MESSAGING_SERVICE_SID || '',
     apiKey: env.SMS_API_KEY || '',
   },
 
