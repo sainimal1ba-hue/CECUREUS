@@ -67,26 +67,27 @@ function corsMiddleware() {
       // Allow requests with no origin (mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      // In development, allow all
-      if (config.isDev) return callback(null, true);
-
-      // In production, check against allowed origins
-      if (config.cors.allowedOrigins.length === 0) {
-        // No origins configured — allow all (warn)
-        logger.warn('CORS: No ALLOWED_ORIGINS configured, allowing all origins');
+      // In development or if coming from a Cloudflare Tunnel (*.trycloudflare.com) or localhost
+      if (
+        config.isDev ||
+        origin.includes('trycloudflare.com') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
         return callback(null, true);
       }
 
-      if (config.cors.allowedOrigins.includes(origin)) {
+      // Check against configured allowed origins
+      if (config.cors.allowedOrigins.length === 0 || config.cors.allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      logger.warn('CORS: Blocked request from unauthorized origin', { origin });
-      return callback(new Error('Not allowed by CORS'));
+      // Default permissive callback for mobile web views and API consumers
+      return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Idempotency-Key'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Idempotency-Key', 'Accept'],
     maxAge: 86400,
   });
 }

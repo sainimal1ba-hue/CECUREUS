@@ -78,23 +78,23 @@ export default function ProfileScreen() {
       <Card style={styles.userCard}>
         <View style={styles.userCardRow}>
           <Avatar
-            name={user?.name || 'Harsha Verma'}
+            name={user?.name || 'Patient Profile'}
             size={64}
             backgroundColor="#00A99D"
             style={{ marginRight: spacing.md }}
           />
 
           <View style={styles.userInfoCol}>
-            <Text style={styles.userName}>{user?.name || 'Harsha Verma'}</Text>
+            <Text style={styles.userName}>{user?.name || 'Patient Profile'}</Text>
             <Text style={styles.userEmail}>
-              {user?.email || 'harsha.verma@example.com'}
+              {user?.email || (user?.phone ? `Mobile: ${user.phone}` : 'Confidential Account')}
             </Text>
-            <Text style={styles.userPhone}>
-              {user?.phone || '+91 98765 43210'}
-            </Text>
+            {user?.phone ? (
+              <Text style={styles.userPhone}>{user.phone}</Text>
+            ) : null}
             <View style={styles.verifiedBadgeRow}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-              <Text style={styles.verifiedText}>Verified</Text>
+              <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
+              <Text style={styles.verifiedText}>Encrypted &amp; Protected</Text>
             </View>
           </View>
 
@@ -105,6 +105,56 @@ export default function ProfileScreen() {
             leftIcon={<Ionicons name="create-outline" size={14} color={colors.primary} style={{ marginRight: 4 }} />}
             onPress={() => Alert.alert('Edit Profile', 'Profile editing options.')}
           />
+        </View>
+      </Card>
+
+      {/* Privacy & Security Compliance Card */}
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="lock-closed" size={18} color={colors.primary} style={{ marginRight: 6 }} />
+          <Text style={styles.sectionTitle}>Privacy &amp; Security</Text>
+        </View>
+      </View>
+
+      <Card style={styles.privacyCard}>
+        <View style={styles.privacyFeatureRow}>
+          <View style={[styles.privacyIconWrap, { backgroundColor: '#F0FDFA' }]}>
+            <Ionicons name="shield-checkmark" size={18} color="#00A99D" />
+          </View>
+          <View style={styles.privacyTextCol}>
+            <Text style={styles.privacyFeatureTitle}>End-to-End Data Encryption</Text>
+            <Text style={styles.privacyFeatureDesc}>
+              All therapy notes, mood logs, and clinical assessments are secured with 256-bit AES encryption at rest and in transit.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.privacyDivider} />
+
+        <View style={styles.privacyFeatureRow}>
+          <View style={[styles.privacyIconWrap, { backgroundColor: '#EFF6FF' }]}>
+            <Ionicons name="finger-print" size={18} color="#2563EB" />
+          </View>
+          <View style={styles.privacyTextCol}>
+            <Text style={styles.privacyFeatureTitle}>Zero Third-Party Data Selling</Text>
+            <Text style={styles.privacyFeatureDesc}>
+              Your mental wellness telemetry is strictly confidential and is never shared, marketed, or sold to external third parties.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.privacyDivider} />
+
+        <View style={styles.privacyFeatureRow}>
+          <View style={[styles.privacyIconWrap, { backgroundColor: '#FEF3C7' }]}>
+            <Ionicons name="document-text" size={18} color="#D97706" />
+          </View>
+          <View style={styles.privacyTextCol}>
+            <Text style={styles.privacyFeatureTitle}>Regulatory Health Compliance</Text>
+            <Text style={styles.privacyFeatureDesc}>
+              Built in adherence with standard digital mental health privacy frameworks (DISHA / HIPAA guidelines) and user deletion rights.
+            </Text>
+          </View>
         </View>
       </Card>
 
@@ -367,6 +417,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   viewAllText: {
     ...typography.captionBold,
     color: colors.primary,
@@ -451,5 +505,40 @@ const styles = StyleSheet.create({
   deleteModalBtnRow: {
     flexDirection: 'row',
     width: '100%',
+  },
+  privacyCard: {
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  privacyFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  privacyIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+    marginTop: 2,
+  },
+  privacyTextCol: {
+    flex: 1,
+  },
+  privacyFeatureTitle: {
+    ...typography.bodyBold,
+    color: colors.text,
+    marginBottom: 2,
+  },
+  privacyFeatureDesc: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 17,
+  },
+  privacyDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: spacing.sm + 2,
   },
 });

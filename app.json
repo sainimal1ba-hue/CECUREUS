@@ -7,6 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "cecureus",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.cecureus.app",
@@ -26,10 +31,8 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       }
     },
     "web": {
@@ -41,9 +44,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#00A99D",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 120
+          "imageWidth": 180,
+          "resizeMode": "contain"
         }
       ],
       "expo-secure-store"

@@ -16,6 +16,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { NetworkErrorBanner } from '../components/ui/NetworkErrorBanner';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -48,6 +49,7 @@ function RootNavigator() {
       <Stack.Screen name="counsellor/[id]" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="assessment/[id]" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="chat/[id]" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="blogs/index" options={{ headerShown: false, presentation: 'card' }} />
     </Stack>
   );
 }
@@ -64,6 +66,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <StatusBar style="dark" />
+        <NetworkErrorBanner />
         <RootNavigator />
       </AuthProvider>
     </SafeAreaProvider>

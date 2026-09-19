@@ -2,70 +2,23 @@
  * CECUREUS — Central Production API Client Service
  *
  * Why this file was created:
- * In the CecureUs architecture, the mobile frontend (React Native / Expo) runs on user
- * phones and external devices while the Express backend runs on the developer's laptop/server.
- * This client was created to provide a single, unified, resilient HTTP transport layer:
- * 1. Dynamic Host Resolution: Routes seamlessly through the local developer machine / server,
- *    Expo host, and local Wi-Fi LAN (192.168.1.8).
- * 2. High Availability Failover: Automatically tries fallback endpoints if the active
- *    route encounters network hiccups or IP drift.
- * 3. Token Management: Injects Bearer JWT tokens into all authenticated requests.
- * 4. Microservice API Wrappers: Exports domain-specific API interfaces for auth, profile,
- *    counsellors, mood tracking, clinical assessments, and the Ollama Phi-3 AI Companion ("Ally").
+ * This module provides the central HTTP client transport for all mobile client requests:
+ * 1. Modular Network Architecture: Reads the active endpoint strictly from `@/config/api`
+ *    (`process.env.EXPO_PUBLIC_API_URL`). Zero hardcoded loopback or private LAN IPs.
+ * 2. Seamless Switching: Switching between immediate Cloudflare Tunnel testing and a
+ *    production VPS requires editing only the single `EXPO_PUBLIC_API_URL` entry in `.env`.
+ * 3. Network Interceptor: Catches socket disconnects, DNS timeouts, and gateway errors (502/503/504),
+ *    triggering the global `NetworkErrorBanner` and providing user-friendly messaging instead of raw Java exceptions.
+ * 4. Microservice API Wrappers: Auth, profile, counsellors, mood, assessments, blogs (paginated), and Ally AI.
  */
 
 import { getAuthToken } from './storage';
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '../config/api';
+import { networkEvents } from './networkEvents';
 
-const DEFAULT_LAPTOP_LAN_IP = '192.168.1.8';
-const API_PORT = 3000;
+export const DEFAULT_API_URL = API_BASE_URL;
 
-function getExpoHostIp(): string | null {
-  const hostUri =
-    Constants.expoConfig?.hostUri ||
-    (Constants as any).manifest?.debuggerHost ||
-    (Constants as any).manifest2?.extra?.expoClient?.hostUri ||
-    (Constants as any).linkingUri;
-
-  if (hostUri && typeof hostUri === 'string') {
-    const clean = hostUri.replace(/^exp:\/\//, '').replace(/^https?:\/\//, '');
-    const host = clean.split(':')[0];
-    const isNumericIpv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
-    if (isNumericIpv4 && host !== '127.0.0.1' && host !== 'localhost') {
-      return host;
-    }
-  }
-  return null;
-}
-
-function resolveApiBaseUrl(): string {
-  const rawEnv = (process.env.EXPO_PUBLIC_API_URL || '').trim();
-  const detectedHost = getExpoHostIp();
-
-  // If explicitly specified in .env as an external public URL (non-localhost), use it directly
-  if (rawEnv && !rawEnv.includes('localhost') && !rawEnv.includes('127.0.0.1')) {
-    return rawEnv.replace(/\/$/, '');
-  }
-
-  // Web environment: localhost is valid directly in browser
-  if (Platform.OS === 'web') {
-    return rawEnv ? rawEnv.replace(/\/$/, '') : `http://localhost:${API_PORT}`;
-  }
-
-  // Physical phone (Android/iOS): localhost points to phone's loopback, not laptop.
-  // Translate localhost/127.0.0.1 to the detected Expo host or current laptop LAN IP.
-  const laptopIp = detectedHost || DEFAULT_LAPTOP_LAN_IP;
-  if (rawEnv && (rawEnv.includes('localhost') || rawEnv.includes('127.0.0.1'))) {
-    return rawEnv.replace(/localhost|127\.0\.0\.1/, laptopIp).replace(/\/$/, '');
-  }
-
-  return `http://${laptopIp}:${API_PORT}`;
-}
-
-export const DEFAULT_API_URL = resolveApiBaseUrl();
-
-let currentBaseUrl = DEFAULT_API_URL;
+let currentBaseUrl = API_BASE_URL;
 
 export function setApiBaseUrl(url: string) {
   currentBaseUrl = url.replace(/\/$/, '');
@@ -100,8 +53,8 @@ export class ApiError extends Error {
 
 /**
  * Core HTTP Request Wrapper
- * Automatically connects to laptop server from phone via resolved LAN IP,
- * with failover between candidate routes if IP changes.
+ * Connects directly to the modular API base URL configured in .env.
+ * Never attempts to connect to 127.0.0.1 or arbitrary fallback IPs.
  */
 export async function apiRequest<T = any>(
   endpoint: string,
@@ -134,60 +87,43 @@ export async function apiRequest<T = any>(
   }
 
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const targetUrl = `${currentBaseUrl}${cleanEndpoint}`;
 
-  const fetchWithTimeout = async (baseUrl: string) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      return await fetch(`${baseUrl}${cleanEndpoint}`, {
-        method,
-        headers: resolvedHeaders,
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timer);
-    }
-  };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   let response: Response | null = null;
-  let lastError: any = null;
-
-  // 1. Try currentBaseUrl first
   try {
-    response = await fetchWithTimeout(currentBaseUrl);
+    response = await fetch(targetUrl, {
+      method,
+      headers: resolvedHeaders,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
   } catch (err: any) {
-    lastError = err;
-
-    // 2. Failover candidates
-    const detectedHost = getExpoHostIp();
-    const candidates = [
-      ...(detectedHost ? [`http://${detectedHost}:${API_PORT}`] : []),
-      `http://${DEFAULT_LAPTOP_LAN_IP}:${API_PORT}`,
-      `http://localhost:${API_PORT}`,
-      `http://127.0.0.1:${API_PORT}`,
-    ].filter((url) => url !== currentBaseUrl);
-
-    for (const altUrl of candidates) {
-      try {
-        response = await fetchWithTimeout(altUrl);
-        if (response) {
-          currentBaseUrl = altUrl; // switch active base URL to the responsive one
-          break;
-        }
-      } catch (altErr: any) {
-        lastError = altErr;
-      }
-    }
-  }
-
-  if (!response) {
+    // Intercept network failure / timeout / socket error
+    networkEvents.notifyError('Unable to connect to CecureUs service. Please check your network connection.');
     throw new ApiError(
-      lastError?.message || 'Network connection failed. Please check your internet or tunnel.',
+      'Unable to connect to CecureUs service. Please check your network connection.',
       0,
       'NETWORK_ERROR'
     );
+  } finally {
+    clearTimeout(timer);
   }
+
+  // Handle gateway errors (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
+  if (response.status === 502 || response.status === 503 || response.status === 504) {
+    networkEvents.notifyError('Unable to connect to CecureUs service. Please check your network connection.');
+    throw new ApiError(
+      'Unable to connect to CecureUs service. Please check your network connection.',
+      response.status,
+      'GATEWAY_ERROR'
+    );
+  }
+
+  // Clear any existing connection alerts on successful network transport
+  networkEvents.notifyClear();
 
   const contentType = response.headers.get('content-type') || '';
   let data: any = null;
@@ -200,37 +136,56 @@ export async function apiRequest<T = any>(
 
   if (!response.ok) {
     const message =
-      data?.error ||
-      data?.message ||
-      (Array.isArray(data?.details) ? data.details.map((d: any) => d.message).join(', ') : null) ||
+      (typeof data === 'object' && (data?.error?.message || data?.message || data?.error)) ||
+      (typeof data === 'string' && data) ||
       `Request failed with status ${response.status}`;
 
-    throw new ApiError(message, response.status, data?.code, data?.details);
+    throw new ApiError(
+      message,
+      response.status,
+      typeof data === 'object' ? data?.error?.code || data?.code : undefined,
+      typeof data === 'object' ? data?.error?.details || data?.details : undefined
+    );
   }
 
   return data as T;
 }
 
-// ─── DOMAIN API WRAPPERS ──────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// DOMAIN-SPECIFIC API CLIENT MODULES
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  register: (data: { name: string; phone: string; email?: string; password?: string }) =>
-    apiRequest('/api/auth/register', { method: 'POST', body: data, skipAuth: true }),
-
   requestPhoneOtp: (data: { phone: string }) =>
-    apiRequest('/api/auth/request-otp', { method: 'POST', body: { phone: data.phone, purpose: 'registration' }, skipAuth: true }),
+    apiRequest('/api/auth/request-otp', {
+      method: 'POST',
+      body: { phone: data.phone, purpose: 'registration' },
+      skipAuth: true,
+    }),
 
   verifyPhoneOtp: (data: { phone: string; code: string }) =>
-    apiRequest('/api/auth/verify-otp', { method: 'POST', body: { phone: data.phone, code: data.code, purpose: 'registration' }, skipAuth: true }),
-
-  verifyPhoneStep: (data: { phone: string; code: string; email: string }) =>
-    apiRequest('/api/auth/verify-phone-step', { method: 'POST', body: data, skipAuth: true }),
+    apiRequest('/api/auth/verify-otp', {
+      method: 'POST',
+      body: { phone: data.phone, code: data.code, purpose: 'registration' },
+      skipAuth: true,
+    }),
 
   requestEmailOtp: (data: { email: string }) =>
-    apiRequest('/api/auth/request-otp', { method: 'POST', body: { email: data.email, purpose: 'registration' }, skipAuth: true }),
+    apiRequest('/api/auth/request-otp', {
+      method: 'POST',
+      body: { email: data.email, purpose: 'registration' },
+      skipAuth: true,
+    }),
 
   verifyEmailOtp: (data: { email: string; code: string }) =>
-    apiRequest('/api/auth/verify-otp', { method: 'POST', body: { email: data.email, code: data.code, purpose: 'registration' }, skipAuth: true }),
+    apiRequest('/api/auth/verify-otp', {
+      method: 'POST',
+      body: { email: data.email, code: data.code, purpose: 'registration' },
+      skipAuth: true,
+    }),
+
+  register: (data: { name: string; phone: string; email?: string; password?: string }) =>
+    apiRequest('/api/auth/register', { method: 'POST', body: data, skipAuth: true }),
 
   registerWithOtp: (data: {
     name: string;
@@ -321,6 +276,34 @@ export const assessmentApi = {
 
   getMyHistory: () =>
     apiRequest('/api/assessments/history/me', { method: 'GET' }),
+};
+
+export const blogsApi = {
+  getBlogs: (params?: { page?: number; limit?: number; category?: string; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', String(params.page));
+    if (params?.limit) query.append('limit', String(params.limit));
+    if (params?.category && params.category !== 'all') query.append('category', params.category);
+    if (params?.search) query.append('search', params.search);
+    const qs = query.toString();
+    return apiRequest<{
+      success: boolean;
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasMore: boolean;
+      blogs: any[];
+    }>(`/api/v1/blogs${qs ? `?${qs}` : ''}`, { method: 'GET', skipAuth: true });
+  },
+
+  createBlog: (data: {
+    title: string;
+    summary: string;
+    category: string;
+    content: string[];
+    author?: string;
+  }) => apiRequest('/api/v1/blogs', { method: 'POST', body: data }),
 };
 
 export const allyApi = {

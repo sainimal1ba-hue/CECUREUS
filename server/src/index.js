@@ -32,6 +32,7 @@ const counsellorRoutes = require('./routes/counsellors');
 const moodRoutes = require('./routes/mood');
 const assessmentRoutes = require('./routes/assessments');
 const allyRoutes = require('./routes/ally');
+const blogRoutes = require('./routes/blogs');
 
 const app = express();
 
@@ -63,6 +64,8 @@ app.use('/api/counsellors', counsellorRoutes);
 app.use('/api/mood', moodRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/ally', allyRoutes);
+app.use('/api/v1/blogs', blogRoutes);
+app.use('/api/blogs', blogRoutes);
 
 // ─── ERROR HANDLING ────────────────────────────────────────
 app.use(notFoundHandler);
@@ -81,9 +84,10 @@ async function start() {
     }
     logger.info('Database connection verified');
 
-    server = app.listen(config.server.port, config.server.host, () => {
+    const bindHost = '0.0.0.0';
+    server = app.listen(config.server.port, bindHost, () => {
       logger.info(`CECUREUS API server started`, {
-        host: config.server.host,
+        host: bindHost,
         port: config.server.port,
         env: config.env,
         publicUrl: config.server.publicUrl,

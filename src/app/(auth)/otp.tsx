@@ -114,10 +114,9 @@ export default function OtpVerificationScreen() {
     setIsVerifying(true);
 
     try {
-      await authApi.verifyPhoneStep({
+      await authApi.verifyPhoneOtp({
         phone,
         code: phoneCode,
-        email,
       });
 
       setCurrentStep(2);

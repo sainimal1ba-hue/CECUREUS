@@ -414,7 +414,7 @@ export default function ExploreScreen() {
 
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => setSelectedCategory('all')}
+            onPress={() => router.push('/blogs')}
             style={styles.viewAllBtn}
           >
             <Text style={styles.viewAllText}>View All &gt;</Text>

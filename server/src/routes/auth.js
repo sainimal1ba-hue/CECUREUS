@@ -452,10 +452,12 @@ router.post(
  */
 router.post('/logout', authenticate, async (req, res, next) => {
   try {
-    const rawToken = req.token;
-    const crypto = require('crypto');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    await authService.revokeSession(tokenHash);
+    const rawToken = req.token || (req.headers.authorization ? req.headers.authorization.replace(/^Bearer\s+/i, '') : '');
+    if (rawToken) {
+      const crypto = require('crypto');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      await authService.revokeSession(tokenHash);
+    }
 
     res.json({
       message: 'Logged out successfully',

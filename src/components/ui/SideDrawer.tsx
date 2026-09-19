@@ -62,15 +62,16 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({ visible, onClose }) => {
     ]);
   };
 
-  const displayName = user?.name || 'Sainimal GE';
-  const displayEmail = user?.email || 'sainimal1ba@gmail.com';
-  const displayPhone = user?.phone || '9840893911';
+  const displayName = user?.name || 'Guest User';
+  const displayEmail = user?.email || (user?.phone ? user.phone : 'guest@cecureus.app');
+  const displayPhone = user?.phone || '';
   const initials = displayName
     .split(' ')
+    .filter(Boolean)
     .map((w) => w[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2) || 'GU';
 
   return (
     <Modal

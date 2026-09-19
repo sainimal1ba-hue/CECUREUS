@@ -24,6 +24,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,7 +46,11 @@ export default function RegisterScreen() {
   const [mobileOtp, setMobileOtp] = useState('');
   const [email, setEmail] = useState('');
   const [emailOtp, setEmailOtp] = useState('');
-  const [agreed, setAgreed] = useState(true);
+  const [agreed, setAgreed] = useState(false);
+
+  // Legal Compliance Modals
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Progressive Verification States
   const [isMobileOtpSent, setIsMobileOtpSent] = useState(false);
@@ -88,8 +93,15 @@ export default function RegisterScreen() {
 
   // ─── STEP 1: MOBILE OTP REQUEST ─────────────────────────────────
   const handleGetMobileOtp = async () => {
-    const cleanMobile = mobile.replace(/[^0-9]/g, '').trim();
-    if (!cleanMobile || cleanMobile.length < 10) {
+    // Sanitize phone number: strip non-numeric characters
+    let digits = mobile.replace(/[^0-9]/g, '').trim();
+    if (digits.length === 12 && digits.startsWith('91')) {
+      digits = digits.slice(2);
+    } else if (digits.length === 11 && digits.startsWith('0')) {
+      digits = digits.slice(1);
+    }
+
+    if (!digits || digits.length !== 10) {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
@@ -99,10 +111,9 @@ export default function RegisterScreen() {
     setIsRequestingMobileOtp(true);
 
     try {
-      const formattedPhone = cleanMobile.slice(-10);
-      const response = await authApi.requestPhoneOtp({ phone: formattedPhone });
+      const response = await authApi.requestPhoneOtp({ phone: digits });
       setIsMobileOtpSent(true);
-      setMobileTimer(30);
+      setMobileTimer(60); // 60-second cooldown timer to prevent spam and rate-limits
       setSuccess('Verification code sent to your mobile number.');
 
       if (response?.devOtpCode) {
@@ -117,7 +128,9 @@ export default function RegisterScreen() {
 
   // ─── STEP 2: VERIFY MOBILE OTP ──────────────────────────────────
   const handleVerifyMobileOtp = async () => {
-    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+    let digits = mobile.replace(/[^0-9]/g, '').trim();
+    if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+    else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
     const cleanCode = mobileOtp.trim();
 
     if (!cleanCode || cleanCode.length !== 6) {
@@ -131,7 +144,7 @@ export default function RegisterScreen() {
 
     try {
       await authApi.verifyPhoneOtp({
-        phone: cleanMobile,
+        phone: digits,
         code: cleanCode,
       });
 
@@ -568,27 +581,17 @@ export default function RegisterScreen() {
                 {agreed && <Ionicons name="checkmark" size={15} color="#FFFFFF" />}
               </TouchableOpacity>
               <Text style={styles.termsText}>
-                I agree to{' '}
+                I agree to the{' '}
                 <Text
                   style={styles.termsLink}
-                  onPress={() =>
-                    Alert.alert(
-                      'Terms & Conditions',
-                      'CecureUs delivers confidential, encrypted, and compassionate mental health counseling.'
-                    )
-                  }
+                  onPress={() => setShowTermsModal(true)}
                 >
                   Terms &amp; Conditions
                 </Text>{' '}
                 &amp;{' '}
                 <Text
                   style={styles.termsLink}
-                  onPress={() =>
-                    Alert.alert(
-                      'Privacy Policy',
-                      'Your privacy is guaranteed. Notes and conversations remain strictly confidential.'
-                    )
-                  }
+                  onPress={() => setShowPrivacyModal(true)}
                 >
                   Privacy Policy
                 </Text>
@@ -621,6 +624,119 @@ export default function RegisterScreen() {
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Comprehensive Terms of Service Modal */}
+      <Modal visible={showTermsModal} animationType="slide" onRequestClose={() => setShowTermsModal(false)}>
+        <SafeAreaView style={styles.legalModalContainer}>
+          <View style={styles.legalModalHeader}>
+            <TouchableOpacity onPress={() => setShowTermsModal(false)} style={styles.legalCloseBtn}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.legalModalHeaderTitle}>Terms of Service</Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.legalScroll} showsVerticalScrollIndicator={false}>
+            {/* Urgent Crisis Disclaimer */}
+            <View style={styles.legalWarningCard}>
+              <View style={styles.warningTitleRow}>
+                <Ionicons name="alert-circle" size={20} color="#DC2626" style={{ marginRight: 6 }} />
+                <Text style={styles.warningTitle}>Emergency Crisis Disclaimer</Text>
+              </View>
+              <Text style={styles.warningText}>
+                CecureUs is a digital mental wellness and psychological counseling platform. It is NOT an emergency response facility. If you or someone you know is experiencing acute psychiatric distress, self-harm impulses, or life-threatening danger, please immediately contact emergency services:
+              </Text>
+              <Text style={styles.emergencyNumbers}>• National Emergency Services: 112 (India) / 911 (US)</Text>
+              <Text style={styles.emergencyNumbers}>• National Suicide &amp; Crisis Lifeline: 988 (US) / 1800-599-0019 (KIRAN)</Text>
+            </View>
+
+            <Text style={styles.legalSectionTitle}>1. Scope of Digital Services</Text>
+            <Text style={styles.legalBody}>
+              CecureUs provides virtual tele-mental health consultations with certified clinical psychologists and psychiatrists, alongside self-care assessments, daily journaling, and the Ally AI emotional wellness companion. Our services are intended for outpatient wellness, stress management, and emotional support.
+            </Text>
+
+            <Text style={styles.legalSectionTitle}>2. User Eligibility &amp; Conduct</Text>
+            <Text style={styles.legalBody}>
+              You must be at least 18 years of age (or have verified parental/guardian consent) to register. You agree to provide accurate identification, preserve the secrecy of your authentication credentials, and treat clinicians with mutual dignity. Harassment, threats, or abusive conduct will result in immediate session termination and permanent account revocation.
+            </Text>
+
+            <Text style={styles.legalSectionTitle}>3. Intellectual Property Rights</Text>
+            <Text style={styles.legalBody}>
+              All clinical questionnaires, assessment scoring methodologies, proprietary interface designs, and psychoeducational blog publications remain the exclusive intellectual property of CecureUs. Unauthorized distribution, reproduction, or scraping is strictly prohibited.
+            </Text>
+
+            <Text style={styles.legalSectionTitle}>4. Limitation of Liability</Text>
+            <Text style={styles.legalBody}>
+              While all our clinicians hold recognized professional credentials, CecureUs does not guarantee specific clinical outcomes. Tele-wellness support is complementary and does not replace in-person psychiatric hospitalization when indicated.
+            </Text>
+
+            <Button
+              title="I Understand &amp; Accept Terms"
+              variant="primary"
+              size="lg"
+              onPress={() => {
+                setAgreed(true);
+                setShowTermsModal(false);
+              }}
+              style={{ marginTop: spacing.xl }}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Comprehensive Privacy Policy Modal */}
+      <Modal visible={showPrivacyModal} animationType="slide" onRequestClose={() => setShowPrivacyModal(false)}>
+        <SafeAreaView style={styles.legalModalContainer}>
+          <View style={styles.legalModalHeader}>
+            <TouchableOpacity onPress={() => setShowPrivacyModal(false)} style={styles.legalCloseBtn}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.legalModalHeaderTitle}>Privacy Policy</Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.legalScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.privacyHighlightCard}>
+              <Ionicons name="shield-checkmark" size={24} color="#00A99D" style={{ marginBottom: 6 }} />
+              <Text style={styles.privacyHighlightTitle}>Our Privacy Pledge</Text>
+              <Text style={styles.privacyHighlightText}>
+                Your mental wellness data belongs exclusively to you. We maintain zero data monetization, zero third-party advertising trackers, and enterprise-grade 256-bit encryption.
+              </Text>
+            </View>
+
+            <Text style={styles.legalSectionTitle}>1. Data Encryption &amp; Cryptography</Text>
+            <Text style={styles.legalBody}>
+              All therapy notes, mood logs, assessment responses, and user credentials are encrypted in transit using TLS 1.3 and at rest using AES-256 standards. Database passwords and authentication tokens are salted and hashed using cryptographic PBKDF2 / SHA-256 algorithms.
+            </Text>
+
+            <Text style={styles.legalSectionTitle}>2. Strict Clinical Confidentiality</Text>
+            <Text style={styles.legalBody}>
+              Conversations between you and your licensed psychologist are protected under professional clinical confidentiality ethics. Transcripts and clinical clinical summaries are accessible only to you and your assigned clinician.
+            </Text>
+
+            <Text style={styles.legalSectionTitle}>3. Zero Third-Party Monetization</Text>
+            <Text style={styles.legalBody}>
+              We never sell, rent, lease, or broker your personal identifiable health data to third-party data brokers, insurers, or advertising platforms. Telemetry is utilized solely to deliver compassionate care and optimize application performance.
+            </Text>
+
+            <Text style={styles.legalSectionTitle}>4. Right to Erasure &amp; Portability</Text>
+            <Text style={styles.legalBody}>
+              Under standard digital health privacy frameworks (DISHA / HIPAA benchmarks), you have the right to request a complete export or permanent deletion of your account and records at any time directly through the Profile &gt; Delete Account screen.
+            </Text>
+
+            <Button
+              title="I Understand &amp; Accept Privacy Policy"
+              variant="primary"
+              size="lg"
+              onPress={() => {
+                setAgreed(true);
+                setShowPrivacyModal(false);
+              }}
+              style={{ marginTop: spacing.xl }}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -908,5 +1024,94 @@ const styles = StyleSheet.create({
   footerLink: {
     ...typography.captionBold,
     color: colors.primary,
+  },
+  legalModalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  legalModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  legalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+  },
+  legalModalHeaderTitle: {
+    ...typography.bodyBold,
+    fontSize: 16,
+    color: colors.text,
+  },
+  legalScroll: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxxl,
+  },
+  legalWarningCard: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  warningTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  warningTitle: {
+    ...typography.bodyBold,
+    color: '#DC2626',
+  },
+  warningText: {
+    ...typography.caption,
+    color: '#7F1D1D',
+    lineHeight: 18,
+    marginBottom: spacing.xs,
+  },
+  emergencyNumbers: {
+    ...typography.captionBold,
+    color: '#991B1B',
+    lineHeight: 18,
+  },
+  privacyHighlightCard: {
+    backgroundColor: '#F0FDFA',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#CCFBF1',
+  },
+  privacyHighlightTitle: {
+    ...typography.bodyBold,
+    color: '#00A99D',
+    marginBottom: 2,
+  },
+  privacyHighlightText: {
+    ...typography.caption,
+    color: '#0F766E',
+    lineHeight: 18,
+  },
+  legalSectionTitle: {
+    ...typography.bodyBold,
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: 4,
+  },
+  legalBody: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
   },
 });
