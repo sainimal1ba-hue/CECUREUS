@@ -1,10 +1,14 @@
 /**
- * CECUREUS — Ally AI Wellness Companion Routes
+ * CECUREUS — Ally AI Mental Wellness Companion Endpoints
  *
- * GET  /api/ally/conversations          — List user's conversations
- * GET  /api/ally/conversations/:id      — Get conversation with messages
- * POST /api/ally/conversations          — Start a new conversation (or with a topic)
- * POST /api/ally/conversations/:id/messages — Send a message & get Ally's empathetic response
+ * Why this file was created:
+ * This router exposes the authenticated REST API for interacting with "Ally", the empathetic AI mental wellness assistant.
+ * It was created to bridge client chat interfaces with the local Microsoft Phi-3 LLM running on Ollama:
+ * - `GET  /api/ally/conversations`: Retrieves a user's chronological conversation list with recent message snippets.
+ * - `GET  /api/ally/conversations/:id`: Fetches full multi-turn dialogue history for a specific conversation.
+ * - `POST /api/ally/conversations`: Creates a new session under a psychological topic (e.g. Stress, Anxiety, Burnout).
+ * - `POST /api/ally/conversations/:id/messages`: Accepts user messages, manages conversation context, triggers the
+ *   local Ollama Phi-3 inference engine, and persists the generated empathetic response in MySQL.
  */
 
 const { Router } = require('express');

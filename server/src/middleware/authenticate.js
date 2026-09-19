@@ -1,9 +1,15 @@
 /**
- * CECUREUS — Authentication Middleware
+ * CECUREUS — Bearer Token Authentication & Session Verification Middleware
  *
- * Validates Bearer tokens from the Authorization header.
- * Looks up session by hashed token, checks expiry and revocation.
- * Attaches user info to req.user.
+ * Why this file was created:
+ * This middleware secures private API endpoints by validating incoming client sessions.
+ * It was created to enforce zero-trust endpoint protection:
+ * - Parses and validates standard `Authorization: Bearer <token>` HTTP headers.
+ * - Computes the SHA-256 hash of the token to match against the `sessions` database table.
+ * - Enforces session expiration timestamps and revocation status in real time.
+ * - Re-queries account status (`active` vs `suspended`/`deleted`) to immediately invalidate revoked users.
+ * - Attaches safe user context (`req.user = { id, name, email, phone, ... }`) and `req.session` to downstream request handlers.
+ * - Exports both strict `authenticate` and optional `optionalAuthenticate` middleware.
  */
 
 const crypto = require('crypto');

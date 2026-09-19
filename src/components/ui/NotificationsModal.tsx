@@ -1,10 +1,10 @@
 /**
- * CECUREUS — Notifications Modal Component
+ * CECUREUS — Interactive Notifications & Alerts Modal Component
  *
- * Interactive alerts sheet:
- * - List of real wellness reminders, session bookings, and security alerts
- * - "Mark all as read" button to clear notification dot
- * - Time stamps and icon categories
+ * Why this file was created:
+ * This modal manages the patient's in-app notification center, triggered by the top navigation header bell.
+ * It was created to display real-time therapy appointment updates, daily mood reminders, clinical assessment follow-ups,
+ * and security login notices, complete with "Mark all as read" state controls and category badge indicators.
  */
 
 import React, { useState } from 'react';

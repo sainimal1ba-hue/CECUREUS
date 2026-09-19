@@ -1,8 +1,11 @@
 /**
- * CECUREUS — Profile Routes
+ * CECUREUS — User Profile & Account Settings Routes
  *
- * GET    /api/profile     — Get current user profile
- * PUT    /api/profile     — Update profile
+ * Why this file was created:
+ * This router manages personal patient information, session records, and account profile preferences.
+ * It was created to power the Profile tab:
+ * - `GET /api/profile`: Aggregates user profile attributes, verification statuses, past therapy sessions, and wellness metrics.
+ * - `PUT /api/profile`: Updates personal profile details (display name, email, phone) with validation checks.
  */
 
 const { Router } = require('express');

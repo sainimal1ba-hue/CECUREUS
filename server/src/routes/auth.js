@@ -1,14 +1,17 @@
 /**
- * CECUREUS — Auth Routes
+ * CECUREUS — Authentication & Identity Lifecycle Routes
  *
- * POST /api/auth/register          — Create account directly
- * POST /api/auth/request-otp       — Generate single OTP
- * POST /api/auth/request-dual-otp  — Generate OTP for Phone & Gmail
- * POST /api/auth/verify-otp        — Verify OTP
- * POST /api/auth/register-with-otp — Verify dual OTP and register account
- * POST /api/auth/login             — Login
- * POST /api/auth/logout            — Logout (revoke session)
- * DELETE /api/auth/account         — Delete account
+ * Why this file was created:
+ * This router implements the end-to-end identity and access management (IAM) API for CecureUs.
+ * It was created to secure user onboarding, authentication, and compliance:
+ * - `POST /api/auth/register`: Direct account creation with phone, email, and password.
+ * - `POST /api/auth/request-otp`: Request time-sensitive cryptographic OTP dispatched to phone or Gmail.
+ * - `POST /api/auth/request-dual-otp`: Dispatches independent OTPs simultaneously to phone and email.
+ * - `POST /api/auth/verify-otp`: Validates individual OTP codes with attempt limiting.
+ * - `POST /api/auth/register-with-otp`: Registers a new account after confirming verification codes.
+ * - `POST /api/auth/login`: Authenticates with email or phone + password, issuing a SHA-256 hashed bearer session token.
+ * - `POST /api/auth/logout`: Revokes active bearer session immediately.
+ * - `DELETE /api/auth/account`: Compliant soft-delete removing active credentials and revoking all device sessions.
  */
 
 const { Router } = require('express');

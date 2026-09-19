@@ -1,18 +1,15 @@
 /**
- * CECUREUS — Registration Screen
+ * CECUREUS — Progressive Step-by-Step Registration Screen
  *
- * Fully integrated with the official CecureUs Design System:
- * - Brand Theme Colors: Primary Teal #00A99D, Mint #E6F7F5, Slate #0F172A
- * - Official CecureUs Logo & Card elevation
- * - Progressive Step-by-Step Inline OTP Verification:
- *   1. User enters Full Name & Mobile (+91)
- *   2. "Get OTP" button on right opens inline "Mobile OTP" input row below
- *   3. Verifying phone displays "Verified ✓" green pill and locks the field
- *   4. Email input unlocks ONLY after phone verification succeeds
- *   5. "Send OTP" button on right opens inline "Email OTP" row below
- *   6. Verifying email displays "Verified ✓" badge
- *   7. Agreement to Terms & Conditions checkbox
- *   8. Brand Teal "Create Account" button directly routes to authenticated Dashboard
+ * Why this file was created:
+ * This screen provides the primary onboarding journey for new CecureUs users, enforcing progressive identity validation.
+ * It was created to implement an intuitive, single-form onboarding flow matching the CecureUs design system:
+ * 1. User enters Full Name & Mobile Number (+91 format).
+ * 2. An inline "Get OTP" button triggers telephone OTP dispatch and reveals an inline OTP verification box.
+ * 3. Successful phone verification reveals a green "Verified ✓" checkmark badge and unlocks the Email field.
+ * 4. Email verification follows identically via Gmail SMTP OTP dispatch.
+ * 5. Secure password creation and Terms of Service agreement complete the registration, issuing a session token
+ *    and immediately redirecting the patient to their personalized Dashboard.
  */
 
 import React, { useState, useEffect } from 'react';

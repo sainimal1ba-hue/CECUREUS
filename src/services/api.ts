@@ -1,18 +1,26 @@
 /**
- * CECUREUS — Production API Client
+ * CECUREUS — Central Production API Client Service
  *
- * Robust REST client with:
- * - Automatic Authorization header injection
- * - Timeout handling
- * - Offline/Demo mode fallback with realistic mock data
- * - Strict type definitions
+ * Why this file was created:
+ * In the CecureUs architecture, the mobile frontend (React Native / Expo) runs on user
+ * phones and external devices while the Express backend runs on the developer's laptop.
+ * This client was created to provide a single, unified, resilient HTTP transport layer:
+ * 1. Automatic Dynamic Host Resolution: Routes seamlessly through the live Cloudflare
+ *    tunnel (https://mountains-hampshire-pointing-filtering.trycloudflare.com), local WiFi
+ *    LAN (192.168.1.8), Expo Metro host, and localhost.
+ * 2. High Availability Failover: Automatically tries fallback endpoints if the active
+ *    route encounters network hiccups or IP drift.
+ * 3. Token Management: Injects Bearer JWT tokens into all authenticated requests.
+ * 4. Microservice API Wrappers: Exports domain-specific API interfaces for auth, profile,
+ *    counsellors, mood tracking, clinical assessments, and the Ollama Phi-3 AI Companion ("Ally").
  */
 
 import { getAuthToken } from './storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const DEFAULT_LAPTOP_LAN_IP = '192.168.1.2';
+export const CLOUDFLARE_TUNNEL_URL = 'https://mountains-hampshire-pointing-filtering.trycloudflare.com';
+const DEFAULT_LAPTOP_LAN_IP = '192.168.1.8';
 const API_PORT = 3000;
 
 function getExpoHostIp(): string | null {
@@ -37,28 +45,26 @@ function resolveApiBaseUrl(): string {
   const rawEnv = (process.env.EXPO_PUBLIC_API_URL || '').trim();
   const detectedHost = getExpoHostIp();
 
+  // If explicitly specified in .env as an HTTPS tunnel or valid public URL, use it directly
+  if (rawEnv && (rawEnv.startsWith('https://') || (!rawEnv.includes('localhost') && !rawEnv.includes('127.0.0.1')))) {
+    return rawEnv.replace(/\/$/, '');
+  }
+
   // Web environment: localhost is valid directly in browser
   if (Platform.OS === 'web') {
     return rawEnv ? rawEnv.replace(/\/$/, '') : `http://localhost:${API_PORT}`;
   }
 
-  // Physical phone (Android/iOS): localhost points to phone's loopback, not laptop.
-  // Translate localhost/127.0.0.1 to the laptop's LAN IP.
-  if (rawEnv) {
-    const clean = rawEnv.replace(/\/$/, '');
-    if (clean.includes('localhost') || clean.includes('127.0.0.1')) {
-      const laptopIp = detectedHost || DEFAULT_LAPTOP_LAN_IP;
-      return clean.replace(/localhost|127\.0\.0\.1/, laptopIp);
+  // Physical phone (Android/iOS): If localhost was supplied, translate to detected host or LAN
+  if (rawEnv && (rawEnv.includes('localhost') || rawEnv.includes('127.0.0.1'))) {
+    if (detectedHost) {
+      return `http://${detectedHost}:${API_PORT}`;
     }
-    return clean;
+    return CLOUDFLARE_TUNNEL_URL;
   }
 
-  // Fallback to detected Expo host or current laptop LAN IP
-  if (detectedHost) {
-    return `http://${detectedHost}:${API_PORT}`;
-  }
-
-  return `http://${DEFAULT_LAPTOP_LAN_IP}:${API_PORT}`;
+  // Primary production route for external phones: live persistent Cloudflare tunnel to laptop
+  return CLOUDFLARE_TUNNEL_URL;
 }
 
 export const DEFAULT_API_URL = resolveApiBaseUrl();
@@ -160,11 +166,10 @@ export async function apiRequest<T = any>(
     // 2. Failover candidates
     const detectedHost = getExpoHostIp();
     const candidates = [
-      `http://${detectedHost || DEFAULT_LAPTOP_LAN_IP}:${API_PORT}`,
-      `http://192.168.1.2:${API_PORT}`,
-      `http://192.168.1.3:${API_PORT}`,
+      CLOUDFLARE_TUNNEL_URL,
+      ...(detectedHost ? [`http://${detectedHost}:${API_PORT}`] : []),
+      `http://${DEFAULT_LAPTOP_LAN_IP}:${API_PORT}`,
       `http://localhost:${API_PORT}`,
-      'https://brunette-future-computers-implies.trycloudflare.com',
     ].filter((url) => url !== currentBaseUrl);
 
     for (const altUrl of candidates) {

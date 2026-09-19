@@ -1,12 +1,14 @@
 /**
- * CECUREUS — My Profile Screen
+ * CECUREUS — Patient Profile & Wellness Records Screen
  *
- * Faithfully matches the Figma Profile prototype:
- * - User card with avatar, name, email, phone, verified badge, and "Edit Profile"
- * - Emergency helpline banner 1800 121 9497
- * - My Wellness Overview 4 metric cards (Sessions, Blogs, Assessments, Goals)
- * - Recent Sessions list with date/format/topics and "View Summary"
- * - Google Play / App Store compliant Delete Account & Logout flows
+ * Why this file was created:
+ * This screen manages the user's personal identity, therapy records, wellness metrics, and account privacy settings.
+ * It was created to provide a centralized account hub:
+ * - Patient identity card with verification badges and profile editor modal.
+ * - Wellness overview telemetry metrics (Completed Sessions, Read Articles, Assessments Taken, Active Goals).
+ * - Longitudinal therapy session history cards with clinician summaries.
+ * - Emergency crisis contacts management.
+ * - Compliant account lifecycle controls (Secure Logout and permanent Account Deletion flows).
  */
 
 import React, { useState } from 'react';

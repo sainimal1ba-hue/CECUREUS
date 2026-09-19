@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * This script is used to reset the project to a blank state.
- * It deletes or moves the /src and /scripts directories to /example based on user input and creates a new /src/app directory with an index.tsx and _layout.tsx file.
- * You can remove the `reset-project` script from package.json and safely delete this file after running it.
+ * CECUREUS — Project Template Reset Script
+ *
+ * Why this file was created:
+ * This utility was provided by the initial Expo starter template to reset the codebase to a clean starter state.
+ * It is preserved in the repository for developer reference.
  */
 
 const fs = require("fs");

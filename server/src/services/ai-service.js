@@ -1,12 +1,15 @@
 /**
- * CECUREUS — Local AI Wellness Engine (Powered by Microsoft Phi-3 via Ollama)
+ * CECUREUS — Local AI Mental Wellness Engine (Powered by Microsoft Phi-3 Mini via Ollama)
  *
- * Implements:
- * - Dynamic, empathetic, intelligent conversational therapy companion "Ally"
- * - Full conversation context & multi-turn memory
- * - Crisis detection (self-harm, acute emergency helpline guidance)
- * - Fast local inference via Ollama HTTP API (http://127.0.0.1:11434)
- * - Safe fallback in case Ollama is busy
+ * Why this file was created:
+ * This service implements the conversational artificial intelligence core for "Ally", CecureUs's on-device/local
+ * mental wellness companion. It was created to provide high-empathy, private psychological support without sending
+ * sensitive mental health data to third-party cloud AI vendors:
+ * 1. Local Private LLM Inference: Communicates directly with Ollama (`http://127.0.0.1:11434`) running Microsoft Phi-3 Mini.
+ * 2. Multi-turn Conversational Memory: Formats prior conversation history to maintain context and continuity.
+ * 3. Clinical Crisis Protocols: Instantly detects self-harm, suicidal ideation, or severe distress keywords and provides
+ *    immediate national tele-mental health helplines (14416 / 1800-891-4416) and emergency services (112).
+ * 4. Resilient Fallback Engine: Provides structured, psychologically grounded fallback responses if the LLM engine is busy.
  */
 
 const http = require('http');
@@ -83,7 +86,7 @@ async function callOllamaChat(messages) {
 
     req.on('timeout', () => {
       req.destroy();
-      reject(new Error('Ollama Phi-3 request timed out after 15s'));
+      reject(new Error('Ollama Phi-3 request timed out after 45s'));
     });
 
     req.on('error', (err) => {

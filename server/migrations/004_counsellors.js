@@ -1,8 +1,14 @@
 /**
- * Migration 004 — Counsellors table
+ * CECUREUS Database Migration 004 — Counsellors Table
  *
- * Mental health professionals listed in the app.
- * From Figma: name, title, specializations, experience, rating, languages.
+ * Why this file was created:
+ * This migration establishes the directory schema for licensed mental health professionals and psychologists in CecureUs.
+ * It was created to support the Counsellor tab and booking experience:
+ * - Professional metadata (title, bio, verified status, years of clinical experience).
+ * - Multi-specialization JSON storage (Anxiety, Depression, Workplace Stress, Relationships, PTSD).
+ * - Language proficiencies JSON storage (English, Hindi, Tamil, Telugu, Malayalam, etc.).
+ * - Aggregate ratings (e.g. 4.9/5.0) and cumulative session counters for social proof.
+ * - Dynamic availability flags (`is_available`) for immediate appointments.
  */
 exports.up = async function (conn) {
   await conn.execute(`

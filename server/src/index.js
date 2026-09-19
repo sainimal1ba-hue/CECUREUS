@@ -1,13 +1,19 @@
 /**
- * CECUREUS — Main Express Server
+ * CECUREUS — Main Production Express API Server
  *
- * Production-grade Express application with:
- * - Security middleware (Helmet, CORS, rate limiting)
- * - Structured logging
- * - Request ID correlation
- * - Graceful shutdown (SIGTERM/SIGINT)
- * - Database pool management
- * - Domain-separated routes
+ * Why this file was created:
+ * This is the central entry point and HTTP orchestration hub for the CecureUs backend service.
+ * It was created to replace legacy single-script prototypes with a robust production architecture:
+ * - Mounts the security middleware pipeline (Helmet, CORS, gzip compression, request IDs).
+ * - Enforces global IP-based rate limiting to prevent abuse.
+ * - Boots and routes domain micro-endpoints:
+ *   - `/api/auth` (Registration, progressive OTP phone/email verification, login, logout)
+ *   - `/api/profile` (User profile, settings, emergency contacts, session history)
+ *   - `/api/counsellors` (Verified psychologist directory & booking)
+ *   - `/api/mood` (Emotional check-in journaling & telemetry)
+ *   - `/api/assessments` (Clinical psychological self-tests & scoring)
+ *   - `/api/ally` (Local Microsoft Phi-3 / Ollama AI therapy companion)
+ * - Verifies database health before opening port listeners, with graceful SIGTERM/SIGINT shutdown.
  */
 
 const express = require('express');

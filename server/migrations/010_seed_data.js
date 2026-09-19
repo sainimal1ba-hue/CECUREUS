@@ -1,8 +1,13 @@
 /**
- * Migration 010 — Seed Data
+ * CECUREUS Database Migration 010 — Production Seed Data
  *
- * Populates the database with initial counsellors and assessments
- * matching the CECUREUS Figma prototype.
+ * Why this file was created:
+ * This migration automatically populates the database with realistic initial clinical dataset matching the CecureUs Figma design.
+ * It was created to provide:
+ * - 4 licensed mental health professionals (Dr. Neha Sharma, Dr. Rajesh Iyer, Dr. Priya Patel, Dr. Vikram Rao)
+ *   with clinical specialties, language fluencies, bios, and verified credentials.
+ * - 4 clinically grounded self-assessment tests (Stress Level Check, Burnout Assessment, Anxiety Screening,
+ *   Work-Life Balance Score) with comprehensive scoring rubrics and question batteries.
  */
 
 const { v4: uuidv4 } = require('uuid');

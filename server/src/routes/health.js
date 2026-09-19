@@ -1,8 +1,11 @@
 /**
- * CECUREUS — Health & Readiness Routes
+ * CECUREUS — Health & Readiness Probe Routes
  *
- * GET /health — Liveness check (is the process alive?)
- * GET /ready  — Readiness check (is the app ready to serve traffic?)
+ * Why this file was created:
+ * This module provides unauthenticated liveness and readiness probes for load balancers, Cloudflare tunnels, and container orchestrators.
+ * It was created to facilitate uptime monitoring:
+ * - `GET /health`: Ultra-lightweight ping returning process status and uptime (used by Cloudflare tunnels and Pingdom).
+ * - `GET /ready`: Deep dependency check querying MySQL pool connectivity to verify readiness before routing traffic.
  */
 
 const { Router } = require('express');

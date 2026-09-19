@@ -1,8 +1,13 @@
 /**
- * Migration 002 — Sessions table
+ * CECUREUS Database Migration 002 — Sessions Table
  *
- * Authentication sessions with hashed tokens.
- * Supports expiry, revocation, and device tracking.
+ * Why this file was created:
+ * This migration implements stateful, cryptographically secure session tracking for CecureUs.
+ * It was created to:
+ * - Store SHA-256 hashes of bearer authentication tokens (raw tokens are never stored in plain text).
+ * - Enable instant token revocation and logout across devices.
+ * - Track client IP addresses and user-agent device metadata for security auditing.
+ * - Support automated session expiry enforcement and cascade cleanup upon account deletion.
  */
 exports.up = async function (conn) {
   await conn.execute(`

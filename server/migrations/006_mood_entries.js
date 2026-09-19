@@ -1,7 +1,12 @@
 /**
- * Migration 006 — Mood entries table
+ * CECUREUS Database Migration 006 — Mood Entries Table
  *
- * From Figma Home screen: mood tracking with emoji-style moods.
+ * Why this file was created:
+ * This migration implements the emotional wellness journaling and mood tracking telemetry.
+ * It was created to back the interactive mood selector on the Dashboard / Home screen:
+ * - Categorizes emotional states ('great', 'good', 'okay', 'low', 'bad').
+ * - Stores optional reflective user notes explaining their feelings.
+ * - Indexed by `account_id` and `created_at` for chronological mood trend analysis and visualization.
  */
 exports.up = async function (conn) {
   await conn.execute(`

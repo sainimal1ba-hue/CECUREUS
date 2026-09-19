@@ -1,11 +1,13 @@
 /**
- * Migration 003 — OTP codes table
+ * CECUREUS Database Migration 003 — OTP Codes Table
  *
- * OTP verification with:
- * - Hashed code storage (never store plaintext)
- * - Expiry enforcement
- * - Attempt counting for brute-force protection
- * - Purpose tracking (registration, login, password_reset)
+ * Why this file was created:
+ * This migration implements time-based one-time password (OTP) verification for telephone and email authentication.
+ * It was created to provide banking-grade security for the login and registration flows:
+ * - Stores SHA-256 hashes of generated 6-digit OTP codes rather than plaintext.
+ * - Tracks attempt counters to lock out brute-force guessing after max attempts (e.g. 5 tries).
+ * - Enforces strict expiration timestamps (default 15 minutes).
+ * - Segregates codes by cryptographic purpose ('registration', 'login', 'password_reset') to prevent replay attacks.
  */
 exports.up = async function (conn) {
   await conn.execute(`

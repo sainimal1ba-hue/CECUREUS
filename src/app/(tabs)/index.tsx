@@ -1,8 +1,14 @@
 /**
- * CECUREUS — Home Screen
+ * CECUREUS — Home Dashboard & Wellness Overview Screen
  *
- * Welcomes user, interactive mood check-in, emergency helpline,
- * daily wellness recommendations, and recent activity.
+ * Why this file was created:
+ * This screen serves as the daily landing hub for active users after logging into the application.
+ * It was created to provide immediate emotional support, habit tracking, and quick health navigation:
+ * - Dynamic personalized greeting addressing the user by their registered name (`user?.name`).
+ * - Interactive 5-state mood check-in telemetry ('great', 'good', 'okay', 'low', 'bad') syncing directly to MySQL.
+ * - Prominent 24/7 crisis intervention helpline banner (14416 / 1800-891-4416).
+ * - Direct shortcut cards for starting an Ally AI chat session, taking self-assessments, and booking verified therapists.
+ * - Notifications modal and side navigation drawer integration.
  */
 
 import React, { useState } from 'react';

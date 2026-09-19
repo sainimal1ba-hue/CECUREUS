@@ -1,5 +1,14 @@
 /**
- * CECUREUS — Counsellor Detail & Booking Screen
+ * CECUREUS — Counsellor Detail & Clinical Appointment Booking Screen
+ *
+ * Why this file was created:
+ * This screen provides the deep-dive clinician profile and interactive appointment scheduling modal.
+ * It was created to facilitate clinical consultation bookings:
+ * - Displays practitioner biography, academic degrees, clinical specializations, verified license shield, and patient ratings.
+ * - Multi-slot date/time picker for upcoming availability.
+ * - Delivery mode selector (Video Consultation, Phone Consultation, or Private In-App Messaging).
+ * - Pre-session clinical topic tagging (Work Stress, Anxiety, Relationship Guidance).
+ * - Direct confirmation dialog creating a registered booking record in MySQL.
  */
 
 import React, { useState } from 'react';

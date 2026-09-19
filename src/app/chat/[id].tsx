@@ -1,12 +1,13 @@
 /**
- * CECUREUS — Ally AI Companion Chat Screen (Powered by Microsoft Phi-3)
+ * CECUREUS — Ally AI Companion Interactive Chat Screen (Powered by Microsoft Phi-3 Mini)
  *
- * Real-time conversational interface connected to local Phi-3 Ollama engine:
- * - Top header with Close (X), Ally Avatar, "Online · 24/7", topic pill tag
- * - Ally speech bubbles with Mascot avatar badge
- * - Real-time conversational context & intelligent empathetic responses
- * - Auto-scrolling to latest message
- * - Interactive quick reply pills
+ * Why this file was created:
+ * This screen provides the dedicated, distraction-free conversational therapy interface with "Ally".
+ * It was created to deliver an empathetic on-device AI counselling experience:
+ * - Real-time conversational context retrieval and stream integration with the local Ollama Microsoft Phi-3 model.
+ * - Interactive typing indicators, auto-scrolling message bubbles, and speech bubble avatars.
+ * - Contextual quick reply pills to help users articulate anxiety, work pressure, and personal emotions.
+ * - Resilient offline/timeout fallback guaranteeing compassionate psychological presence even if network is degraded.
  */
 
 import React, { useState, useEffect, useRef } from 'react';

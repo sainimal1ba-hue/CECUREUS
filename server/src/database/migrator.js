@@ -1,13 +1,13 @@
 /**
- * CECUREUS — Database Migration Runner
+ * CECUREUS — Database Migration Runner & Version Control
  *
- * Tracks applied migrations in a _migrations table.
- * Runs pending migrations in order.
- * Never drops or destroys existing data.
- *
- * Usage:
- *   node src/database/migrator.js          # Run pending migrations
- *   node src/database/migrator.js --status # Show migration status
+ * Why this file was created:
+ * This script provides automated, idempotent schema migrations for the MySQL database.
+ * It was created to solve database lifecycle management:
+ * - Tracks applied migrations via the internal `_migrations` table with batch numbers and execution timestamps.
+ * - Discovers and runs numeric migration files (`001_accounts.js` ... `010_seed_data.js`) in strict sequential order.
+ * - Wraps individual migrations in transactions to prevent partial schema corruptions.
+ * - Provides CLI diagnostics (`--status`) to inspect schema state without executing modifications.
  */
 
 const fs = require('fs');

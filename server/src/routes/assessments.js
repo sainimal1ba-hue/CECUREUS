@@ -1,10 +1,14 @@
 /**
- * CECUREUS — Self Assessment Routes
+ * CECUREUS — Clinical Self-Assessment & Scoring Routes
  *
- * GET  /api/assessments             — List available self assessments (Stress, Burnout, Anxiety, etc.)
- * GET  /api/assessments/:id         — Get assessment questions & details
- * POST /api/assessments/:id/submit  — Submit answers & get score result
- * GET  /api/assessments/history/me  — Get user's past assessment scores
+ * Why this file was created:
+ * This router delivers standardized mental wellness diagnostic screenings and automated clinical evaluation.
+ * It was created to power the Explore screen assessments:
+ * - `GET  /api/assessments`: Lists published screening tests categorized by domain (Stress, Anxiety, Burnout, Sleep).
+ * - `GET  /api/assessments/:id`: Serves test details, question inventories, and rating scale metadata.
+ * - `POST /api/assessments/:id/submit`: Calculates assessment scores against clinical guide rubrics, assigns severity
+ *   tiers (Low, Mild, Moderate, Severe), and returns tailored actionable recommendations.
+ * - `GET  /api/assessments/history/me`: Provides chronological history of previous assessments to monitor recovery.
  */
 
 const { Router } = require('express');

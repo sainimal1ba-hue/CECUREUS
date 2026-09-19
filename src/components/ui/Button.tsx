@@ -1,5 +1,10 @@
 /**
- * CECUREUS — Reusable Button Component
+ * CECUREUS — Accessible Interactive Button Component
+ *
+ * Why this file was created:
+ * This component provides a standardized, accessible touch target for user interactions across the app.
+ * It was created with consistent visual variants: 'primary' (brand teal), 'secondary' (navy), 'outline',
+ * 'tealOutline', 'ghost', and 'danger', featuring built-in activity loading spinners and disabled state handling.
  */
 
 import React from 'react';

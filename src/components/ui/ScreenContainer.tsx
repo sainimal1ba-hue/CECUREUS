@@ -1,5 +1,13 @@
 /**
- * CECUREUS — Screen Container Wrapper
+ * CECUREUS — Screen Container & Scaffold Wrapper Component
+ *
+ * Why this file was created:
+ * This component provides the standardized layout skeleton for top-level application screens.
+ * It was created to automatically manage:
+ * - Safe area insets handling notch and home indicators across devices.
+ * - Optional persistent header integration (`Header`).
+ * - Pull-to-refresh (`RefreshControl`) and scrollable vs fixed viewports.
+ * - Keyboard avoiding behavior for inputs on iOS and Android.
  */
 
 import React from 'react';

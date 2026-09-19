@@ -1,11 +1,13 @@
 /**
- * CECUREUS — Sequential Account Verification Screen (Step 1: Phone, Step 2: Gmail)
+ * CECUREUS — Sequential Two-Factor OTP Verification Screen
  *
- * Implements strict sequential verification matching UX design principles:
- * - Step 1: Mobile Phone OTP Verification (logged in terminal for instant testing)
- * - Step 2: Gmail OTP Verification (sent to Gmail inbox & logged in terminal)
- * - Step Progress Bar
- * - "Verify & Complete Registration"
+ * Why this file was created:
+ * This screen executes high-assurance identity verification before activating user accounts.
+ * It was created to implement a phased multi-factor authentication flow:
+ * - Step 1: Mobile Phone Verification via SMS OTP.
+ * - Step 2: Email Verification via Gmail SMTP OTP.
+ * - Dynamic 6-box pin code input with automatic focus progression and paste detection.
+ * - Cooldown resend timers, attempt counters, and instant live terminal notification aids for development.
  */
 
 import React, { useState, useEffect, useRef } from 'react';

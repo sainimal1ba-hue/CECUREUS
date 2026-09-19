@@ -1,7 +1,13 @@
 /**
- * CECUREUS — Authentication Context & Provider
+ * CECUREUS — Global Authentication Context & State Provider
  *
- * Manages global user authentication state, token persistence, and profile data.
+ * Why this file was created:
+ * This React context manages the global authentication lifecycle across the entire mobile application.
+ * It was created to provide a unified reactive state layer:
+ * - Bootstraps session state on app launch by reading secure persistent storage (`getAuthToken()`, `getUserProfile()`).
+ * - Exposes high-level action primitives: `login()`, `logout()`, `register()`, `refreshProfile()`, and `deleteAccount()`.
+ * - Provides reactive boolean flags (`isAuthenticated`, `isLoading`) to drive declarative routing guards in Expo Router.
+ * - Prevents race conditions and desynchronization between on-disk tokens and in-memory session user state.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';

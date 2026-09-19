@@ -1,9 +1,14 @@
 /**
- * CECUREUS — Secure Storage Service
+ * CECUREUS — Secure Hardware-Backed Storage Service
  *
- * Stores session tokens and sensitive credentials using platform-native hardware security
- * (iOS Keychain, Android KeyStore via expo-secure-store).
- * Provides in-memory / local storage fallback for web.
+ * Why this file was created:
+ * This module provides secure on-device persistence for sensitive user tokens, credentials, and profile state.
+ * It was created to safeguard data at rest:
+ * - Uses hardware-backed cryptographic enclaves (iOS Keychain via SecItem and Android KeyStore via Keystore/AES)
+ *   through `expo-secure-store`.
+ * - Provides graceful fallbacks (`localStorage` or in-memory dictionary) for web and non-native environments.
+ * - Exports typed helper functions: `saveAuthToken()`, `getAuthToken()`, `removeAuthToken()`, `saveUserProfile()`,
+ *   and `getUserProfile()`.
  */
 
 import * as SecureStore from 'expo-secure-store';

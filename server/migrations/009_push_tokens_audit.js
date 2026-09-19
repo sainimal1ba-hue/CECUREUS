@@ -1,5 +1,13 @@
 /**
- * Migration 009 — Push tokens and audit log
+ * CECUREUS Database Migration 009 — Push Tokens & Audit Log Tables
+ *
+ * Why this file was created:
+ * This migration establishes push notification device registry and regulatory security audit logging.
+ * It was created to provide:
+ * - `push_tokens`: Device push tokens (Expo / APNs / FCM) tied to user accounts for session reminders,
+ *   crisis alerts, and message notifications.
+ * - `audit_log`: Immutable compliance audit trail recording security events (logins, OTP verifications,
+ *   password changes, profile updates) with IP addresses and user agents for regulatory compliance.
  */
 exports.up = async function (conn) {
   // Push notification device tokens

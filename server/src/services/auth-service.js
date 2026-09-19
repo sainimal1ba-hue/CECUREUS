@@ -1,14 +1,15 @@
 /**
- * CECUREUS — Authentication & Cryptographic Service
+ * CECUREUS — Authentication & Cryptographic Core Service
  *
- * Implements:
- * - Bcrypt password hashing (cost factor 12)
- * - Timing-safe password verification (dummy hash on miss)
- * - Session token generation & SHA-256 hashed storage
- * - Rate-limited, attempt-counted OTP with dual (Phone + Gmail) support
- * - Nodemailer integration for Gmail OTP delivery
- * - Automatic account lockout on repeated failures
- * - GDPR / CCPA compliant account anonymization
+ * Why this file was created:
+ * This service implements the complete cryptographic, credential management, and multi-factor notification logic.
+ * It was created to provide enterprise-grade identity security for all user accounts:
+ * - Bcrypt password hashing (configurable work factor 12) with timing-attack mitigation (`DUMMY_HASH` evaluation on missing users).
+ * - Cryptographic OTP generation (6-digit integer) with SHA-256 hashed database storage and attempt counting.
+ * - Multi-channel OTP dispatch via Nodemailer (Gmail SMTP with branded HTML email templates) and SMS gateway stubs.
+ * - Brute-force account lockout protection (`locked_until` threshold after repeated failed attempts).
+ * - Stateful bearer session issuance, SHA-256 session token hashing, and multi-device revocation.
+ * - Soft-delete account cleanup complying with DPDP and GDPR requirements.
  */
 
 const crypto = require('crypto');

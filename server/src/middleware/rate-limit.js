@@ -1,13 +1,12 @@
 /**
- * CECUREUS — Rate Limiting Middleware
+ * CECUREUS — Distributed Tiered Rate Limiting Middleware
  *
- * Tiered rate limiting:
- * - Global: all endpoints
- * - Auth: stricter for login/OTP/registration
- * - Configurable via environment variables
- *
- * Uses express-rate-limit which stores counts in memory by default.
- * For multi-instance deployments, replace with a Redis-backed store.
+ * Why this file was created:
+ * This module shields the API from denial-of-service (DoS) attacks, brute-force credential guessing, and SMS/OTP spam.
+ * It was created to enforce multi-tiered traffic shaping:
+ * - `globalLimiter`: Protects all general endpoints (100 requests per 15-minute window by default).
+ * - `authLimiter`: Strict limiter on authentication, OTP generation, and login endpoints (20 attempts per 15-minute window).
+ * - Returns RFC 7807 compliant 429 Too Many Requests status codes with `Retry-After` headers.
  */
 
 const rateLimit = require('express-rate-limit');

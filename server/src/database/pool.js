@@ -1,12 +1,13 @@
 /**
- * CECUREUS — MySQL Connection Pool
+ * CECUREUS — Production MySQL Connection Pool Manager
  *
- * Production-grade connection pooling with:
- * - Configurable pool size and timeouts
- * - Health check queries
- * - Graceful shutdown
- * - Auto-reconnection
- * - Promise-based API (mysql2/promise)
+ * Why this file was created:
+ * This module manages persistent MySQL connection pooling for the entire backend application.
+ * It was created to replace ad-hoc, unpooled database connections with an enterprise-grade connection pool:
+ * - Singleton connection pool lifecycle management preventing socket starvation under concurrent mobile traffic.
+ * - Dynamic health check ping (`healthCheck()`) used by pre-boot checks and Kubernetes/monitoring endpoints.
+ * - Managed transaction wrapper helper (`withTransaction()`) guaranteeing automatic commit/rollback semantics.
+ * - Graceful connection draining (`close()`) during server shutdown.
  */
 
 const mysql = require('mysql2/promise');

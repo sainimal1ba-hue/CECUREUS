@@ -1,11 +1,13 @@
 /**
- * CECUREUS — Side Navigation Drawer Component
+ * CECUREUS — Side Navigation Slide-Over Drawer Component
  *
- * Full-featured slide-out navigation menu:
- * - User profile banner (Avatar, Name, Email/Phone)
- * - Navigation links to all major tabs
- * - Quick emergency helpline dialer
- * - Sign Out button with full session purge
+ * Why this file was created:
+ * This component provides an accessible slide-out navigation menu triggered from the header hamburger button.
+ * It was created to deliver secondary navigation and account management:
+ * - Patient profile overview banner (Avatar, Name, Email, Phone).
+ * - Direct navigation links to Home, Explore, Ally Chat, Counsellors, and Profile.
+ * - One-touch emergency crisis dialer (14416 / 1800 121 9497).
+ * - Direct Sign Out action with full session revocation and local storage cache purge.
  */
 
 import React from 'react';

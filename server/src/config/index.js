@@ -1,8 +1,13 @@
 /**
- * CECUREUS Server Configuration
+ * CECUREUS — Central Server Environment & Application Configuration
  *
- * Loads and validates environment variables.
- * Fails fast on missing required configuration in production.
+ * Why this file was created:
+ * This module serves as the single source of truth for all runtime configuration parameters across the backend.
+ * It was created to:
+ * - Automatically discover and parse `.env` files across root and server directory trees.
+ * - Centralize type conversion and default value fallback for ports, database pools, and timeouts.
+ * - Provide fail-fast validation in production mode to prevent booting with missing critical secrets (e.g. AUTH_TOKEN_SECRET).
+ * - Expose structured configuration namespaces: server, db, auth, otp, sms, ai (Ollama), rateLimit, cors, push, and logging.
  */
 
 // Load .env from server/ directory or root directory

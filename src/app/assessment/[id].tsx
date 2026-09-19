@@ -1,5 +1,13 @@
 /**
- * CECUREUS — Interactive Self-Assessment Screen
+ * CECUREUS — Interactive Psychological Self-Assessment Screen
+ *
+ * Why this file was created:
+ * This screen guides users through standardized mental health evaluations (Stress, Anxiety, Burnout, Work-Life Balance).
+ * It was created to deliver accessible clinical self-monitoring:
+ * - Dynamic questionnaire pagination with progress bar indicator (Question X of Y).
+ * - Single-choice Likert rating scales (Never to Very Often).
+ * - Instant clinical score evaluation with visual severity badges (Low, Mild, Moderate, Severe).
+ * - Tailored evidence-based coping recommendations and direct links to book verified counsellors.
  */
 
 import React, { useState } from 'react';

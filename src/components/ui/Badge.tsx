@@ -1,5 +1,10 @@
 /**
- * CECUREUS — Badge / Tag Component
+ * CECUREUS — Status Badge & Category Tag UI Component
+ *
+ * Why this file was created:
+ * This component provides compact status indicators, verification pills, and category tags.
+ * It was created with predefined variants: 'default', 'primary' (teal), 'success' (verified green),
+ * 'warning' (amber), 'purple', and 'outline', matching the CecureUs design system.
  */
 
 import React from 'react';

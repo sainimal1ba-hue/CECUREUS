@@ -1,3 +1,12 @@
+/**
+ * CECUREUS — Reanimated Splash & Brand Logo Icon Overlay (Native)
+ *
+ * Why this file was created:
+ * This component provides a fluid, hardware-accelerated initial launch transition from the native splash screen
+ * to the CecureUs app interface on physical Android and iOS devices.
+ * It was created using React Native Reanimated keyframe interpolations to scale and fade out the logo smoothly.
+ */
+
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';

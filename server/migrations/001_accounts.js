@@ -1,8 +1,15 @@
 /**
- * Migration 001 — Accounts table
+ * CECUREUS Database Migration 001 — Accounts Table
  *
- * Core user accounts for CECUREUS.
- * Supports soft-delete for account deletion compliance.
+ * Why this file was created:
+ * This migration defines the core user identity and credentials table for the CecureUs platform.
+ * It was created to provide a secure, scalable account repository supporting:
+ * - UUIDv4 primary keys for distributed security (preventing sequential ID enumeration).
+ * - Multi-factor identity with unique phone numbers and email addresses.
+ * - Argon2/Bcrypt password hash storage.
+ * - Brute-force protection tracking (`failed_login_attempts`, `locked_until`).
+ * - Soft-delete capability (`deleted_at`) for GDPR/DPDP privacy compliance.
+ * - Real-time verification flags for phone and email.
  */
 exports.up = async function (conn) {
   await conn.execute(`

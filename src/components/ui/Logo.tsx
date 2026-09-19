@@ -1,9 +1,10 @@
 /**
- * CECUREUS — Official Brand Logo Component
+ * CECUREUS — Official Brand Mark & Wordmark Logo Component
  *
- * Uses the official transparent CecureUs brand image asset directly:
- * - Top dual-swoosh ribbon icon (Turquoise Cyan + Golden Amber)
- * - Wordmark: "Cecure" + "Us"
+ * Why this file was created:
+ * This component provides consistent, high-fidelity brand presentation across splash screens, login headers,
+ * drawer menus, and navigation headers. It was created to support multiple sizing profiles ('icon', 'horizontal', 'vertical')
+ * using the official CecureUs transparent ribbon and dual-tone typography assets.
  */
 
 import React from 'react';

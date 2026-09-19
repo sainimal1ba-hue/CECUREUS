@@ -1,7 +1,12 @@
 /**
- * Migration 008 — Ally chat conversations
+ * CECUREUS Database Migration 008 — Ally AI Conversations & Messages Tables
  *
- * From Figma: AI mental wellness companion "Ally" with chat interface.
+ * Why this file was created:
+ * This migration implements persistent storage for user chat sessions with "Ally", the AI mental wellness companion.
+ * It was created to power conversational continuity and historical memory for local LLM inference:
+ * - `ally_conversations`: Tracks conversation sessions organized by psychological topic (Work Stress, Anxiety, Sleep, Relationships).
+ * - `ally_messages`: Stores individual dialogue turns between 'user' and 'ally', enabling multi-turn context retrieval
+ *   for the Microsoft Phi-3 / Ollama local AI inference pipeline.
  */
 exports.up = async function (conn) {
   await conn.execute(`

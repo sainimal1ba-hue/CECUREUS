@@ -1,12 +1,14 @@
 /**
- * CECUREUS — Bottom Tabs Layout
+ * CECUREUS — Main Bottom Tab Navigation Layout
  *
- * Faithfully matches the Figma prototype bottom navigation bar:
- * - Home (Left 1)
- * - Explore (Left 2)
- * - Ally (Center elevated brand button)
- * - Counsellor (Right 1)
- * - Profile (Right 2)
+ * Why this file was created:
+ * This component defines the persistent primary navigation shell for the authenticated application experience.
+ * It was created to implement the 5-tab navigation bar specified in the CecureUs Figma design:
+ * 1. Home (`index.tsx`): Patient dashboard, mood tracking, quick actions, wellness highlights.
+ * 2. Explore (`explore.tsx`): Clinically validated mental health assessments and educational resources.
+ * 3. Ally (`ally.tsx`): Center elevated brand button launching the local Microsoft Phi-3 AI therapy companion.
+ * 4. Counsellor (`counsellor.tsx`): Directory of licensed psychologists and therapy appointment scheduling.
+ * 5. Profile (`profile.tsx`): Patient wellness metrics, appointment history, emergency contacts, and settings.
  */
 
 import React from 'react';

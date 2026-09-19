@@ -1,5 +1,14 @@
 /**
- * CECUREUS — Root Application Layout & Auth Router
+ * CECUREUS — Root Application Layout & Authentication Routing Guard
+ *
+ * Why this file was created:
+ * This is the top-level layout component for the entire Expo Router navigation tree.
+ * It was created to provide essential application-wide infrastructure:
+ * - Wraps the app in `SafeAreaProvider` and `AuthProvider` to provide global theme and session context.
+ * - Enforces reactive authentication routing guards: automatically redirects unauthenticated users to `/login`
+ *   and authenticated users away from the auth group into `/(tabs)`.
+ * - Manages native splash screen hiding lifecycle after session restoration completes.
+ * - Configures root stack navigation transitions (headerless modal presentations for assessment, counsellor, and chat).
  */
 
 import React, { useEffect } from 'react';

@@ -1,3 +1,11 @@
+/**
+ * CECUREUS — Animated Brand Icon & Splash Component (Web Platform)
+ *
+ * Why this file was created:
+ * This component provides web-compatible CSS animation overlays and keyframes for browser environments,
+ * ensuring seamless performance on desktop and mobile web without native worklet dependencies.
+ */
+
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Keyframe, Easing } from 'react-native-reanimated';

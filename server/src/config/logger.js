@@ -1,11 +1,13 @@
 /**
- * CECUREUS — Structured Logger
+ * CECUREUS — Production Structured Logger Service (Winston)
  *
- * Production-safe logging:
- * - NEVER logs passwords, OTPs, tokens, secrets
- * - Structured JSON in production
- * - Human-readable in development
- * - Request correlation via request IDs
+ * Why this file was created:
+ * This module provides high-performance, HIPAA/DPDP-compliant logging across all server services.
+ * It was created to solve critical logging requirements:
+ * - Automatic redaction of sensitive credentials (passwords, hashes, OTP codes, bearer tokens, API keys).
+ * - Human-readable colorized output for local terminal development.
+ * - JSON formatted output with ISO-8601 timestamps and request IDs for centralized production log ingestion.
+ * - Non-blocking console transport preventing event-loop bottlenecks under high load.
  */
 
 const winston = require('winston');

@@ -1,12 +1,13 @@
 /**
- * CECUREUS — Ally AI Wellness Companion Screen
+ * CECUREUS — Ally AI Wellness Companion Landing Screen
  *
- * Faithfully matches the Figma Ally prototype:
- * - Ally mascot header & warm introduction
- * - 6 structured help topics
- * - "Ask Ally anything..." quick query bar with send button
- * - Confidentiality & privacy reassurance banner
- * - Quick wellness activities
+ * Why this file was created:
+ * This screen introduces users to "Ally", CecureUs's private AI mental wellness companion powered by Microsoft Phi-3.
+ * It was created to provide a low-barrier, welcoming psychological safe space:
+ * - Displays the friendly Ally brand identity and strict confidentiality reassurance ("100% Private & Confidential").
+ * - Quick conversation starter chips for common emotional challenges (Managing Stress, Better Sleep, Anxiety Relief, Workplace Burnout).
+ * - Direct query bar allowing users to type a spontaneous thought and immediately transition into the active chat session (`/chat/[id]`).
+ * - Micro-wellness breathing and sensory grounding exercises for fast relief.
  */
 
 import React, { useState } from 'react';

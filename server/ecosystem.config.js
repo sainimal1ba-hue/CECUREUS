@@ -1,11 +1,13 @@
 /**
- * CECUREUS — PM2 Ecosystem Configuration
+ * CECUREUS — PM2 Process Manager Ecosystem Configuration
  *
- * Production process management:
- * - Cluster mode to utilize all CPU cores
- * - Auto-restart on crash
- * - Log rotation
- * - Graceful shutdown
+ * Why this file was created:
+ * This file configures the enterprise production process manager (PM2) for the CecureUs backend.
+ * It was created to ensure continuous zero-downtime reliability:
+ * - Runs the Express API in multi-core cluster mode (`instances: 'max'`) across all available CPU cores.
+ * - Enforces automatic process resurrection upon uncaught exceptions or crashes.
+ * - Configures standardized log routing and log rotation (`./logs/out.log`, `./logs/error.log`).
+ * - Manages graceful zero-downtime rolling reloads (`kill_timeout: 30000`) for seamless production updates.
  */
 
 module.exports = {

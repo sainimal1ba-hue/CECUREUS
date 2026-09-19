@@ -1,8 +1,10 @@
 /**
- * CECUREUS — SOS / Emergency Helpline Banner
+ * CECUREUS — SOS Emergency Helpline Banner Component
  *
- * Prominently shown across screens (Counsellors, Profile, Home) in Figma:
- * "If anyone touches you or makes you uncomfortable, get help immediately. 1800 121 9497"
+ * Why this file was created:
+ * This component provides an immediate, high-priority safety alert banner anchored across critical screens
+ * (Home, Counsellor, Profile) for patients experiencing harassment, acute distress, or crisis.
+ * It was created to provide instant one-tap emergency dialing to the national helpline (1800 121 9497 / 14416).
  */
 
 import React from 'react';

@@ -1,8 +1,13 @@
 /**
- * CECUREUS — Error Handler Middleware
+ * CECUREUS — Centralized Error Handling & Safety Middleware
  *
- * Catches all errors and returns safe responses.
- * NEVER exposes SQL errors, stack traces, file paths, or secrets.
+ * Why this file was created:
+ * This module provides catch-all error isolation and prevents internal information leaks.
+ * It was created to safeguard API responses:
+ * - Sanitizes all uncaught exceptions, ensuring SQL errors, database schemas, and stack traces are never exposed to clients.
+ * - Formats standardized JSON error envelopes `{ error, code, details }` across all endpoints.
+ * - Handles 404 Route Not Found conditions with clean responses.
+ * - Distinguishes operational validation errors from unexpected 500 server crashes and logs structured alerts with request IDs.
  */
 
 const logger = require('../config/logger');

@@ -1,11 +1,13 @@
 /**
- * CECUREUS — Sign In / Login Screen
+ * CECUREUS — Sign In & User Authentication Screen
  *
- * Clean, minimal, high-aesthetic login screen:
- * - Official brand logo
- * - Phone & password inputs
- * - Primary "Login" button
- * - Create account link
+ * Why this file was created:
+ * This screen serves as the primary gateway for registered users to access their CecureUs mental health portal.
+ * It was created to deliver an elegant, accessible, and secure login experience:
+ * - Direct authentication via email or phone number paired with password.
+ * - Auto-resolving network connectivity: routes requests through the active Cloudflare tunnel or local network.
+ * - Immediate form validation with user-friendly error banners.
+ * - Seamless transition to `/register` for new patients and navigation to `/(tabs)` upon credential verification.
  */
 
 import React, { useState } from 'react';

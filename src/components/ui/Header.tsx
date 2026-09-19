@@ -1,10 +1,12 @@
 /**
- * CECUREUS — App Header Component
+ * CECUREUS — Top Application Navigation Header Component
  *
- * Top bar matching Figma:
- * - Hamburger menu icon on left
- * - CecureUs Brand logo in center
- * - Notification bell with active red badge on right
+ * Why this file was created:
+ * This component provides the persistent top navigational bar across all top-level tab screens.
+ * It was created to implement the Figma header specification:
+ * - Hamburger menu button on left triggering the slide-over `SideDrawer` modal.
+ * - Center CecureUs official brand mark (`Logo`).
+ * - Notification bell icon on right with reactive unread badges triggering the `NotificationsModal`.
  */
 
 import React, { useState } from 'react';

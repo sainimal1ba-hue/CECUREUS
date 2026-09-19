@@ -1,8 +1,11 @@
 /**
- * CECUREUS — Mood Tracking Routes
+ * CECUREUS — Mood Tracking & Emotional Journaling Routes
  *
- * GET  /api/mood         — Get user's mood history & stats
- * POST /api/mood         — Record a new mood entry
+ * Why this file was created:
+ * This router powers the interactive daily mood tracker and emotional wellness telemetry.
+ * It was created to support patient self-monitoring on the Dashboard screen:
+ * - `GET  /api/mood`: Retrieves paginated mood check-ins and aggregated statistical distribution for progress charts.
+ * - `POST /api/mood`: Records real-time mood status ('great', 'good', 'okay', 'low', 'bad') with optional reflective notes.
  */
 
 const { Router } = require('express');

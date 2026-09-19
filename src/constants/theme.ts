@@ -1,15 +1,13 @@
 /**
- * CECUREUS — Design System & Theme Tokens
+ * CECUREUS — Design System & Theme Tokens Specification
  *
- * Faithfully extracted from Figma prototype:
- * - Brand Teal / Cyan: #00A99D (Primary accent, CTA, Ally brand)
- * - Dark Teal: #008B80
- * - Light Teal / Mint: #E6F7F5
- * - Slate / Navy: #1E293B (Headings, primary typography)
- * - Soft Gray: #64748B (Subtitles, body copy)
- * - Danger / Emergency: #EF4444 / #FEE2E2
- * - Warning / Amber: #F59E0B / #FEF3C7
- * - Purple / Indigo: #8B5CF6 / #EDE9FE
+ * Why this file was created:
+ * This module defines the canonical design tokens, color palettes, typography scales, spacing units, and shadow elevations
+ * for the entire CecureUs mobile application, faithfully matching the Figma brand identity:
+ * - Brand Teal Primary Palette: `#00A99D` (Primary Action / Ally Brand), `#008B80` (Dark Teal), `#E6F7F5` (Mint background).
+ * - Typography & Neutrals: `#1E293B` (Slate Navy headings), `#64748B` (Secondary body copy), `#F8FAFC` (Canvas background).
+ * - Crisis & Safety Alerts: `#EF4444` (Emergency Banner / 14416 Helpline indicator).
+ * - Spacing, Radius & Elevation Tokens: Predefined 4px grid steps, rounded card radiuses, and cross-platform shadow matrices.
  */
 
 export const colors = {

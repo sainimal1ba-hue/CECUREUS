@@ -1,3 +1,11 @@
+/**
+ * CECUREUS — Web Application Tab Navigation Component
+ *
+ * Why this file was created:
+ * This component provides web-accessible HTML5 semantic tab navigation (using expo-router/ui Tabs, TabList, TabTrigger)
+ * for desktop and mobile browser screen layouts.
+ */
+
 import {
   Tabs,
   TabList,

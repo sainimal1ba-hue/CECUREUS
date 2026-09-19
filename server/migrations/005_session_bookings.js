@@ -1,9 +1,13 @@
 /**
- * Migration 005 — Session bookings table
+ * CECUREUS Database Migration 005 — Session Bookings Table
  *
- * Counselling session bookings.
- * From Figma profile: shows session type (Video Call, Phone Call),
- * date/time, counsellor, topics, and summary link.
+ * Why this file was created:
+ * This migration manages scheduled therapy appointments between users and verified mental health counsellors.
+ * It was created to power the appointment management and profile session history:
+ * - Supports multiple delivery modes ('video_call', 'phone_call', 'chat').
+ * - Lifecycle state transitions ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled').
+ * - Links patient accounts to assigned counsellors via foreign keys with cascade safety.
+ * - Stores clinical session summaries, pre-session notes, and discussion topics for longitudinal patient care.
  */
 exports.up = async function (conn) {
   await conn.execute(`

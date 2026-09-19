@@ -1,5 +1,10 @@
 /**
- * CECUREUS — Reusable Input Component
+ * CECUREUS — Accessible Form Text Input UI Component
+ *
+ * Why this file was created:
+ * This component standardizes text input fields across authentication, profile editing, and search forms.
+ * It was created with built-in label typography, active focus border styling, inline validation error messages,
+ * left/right iconography, and an eye toggle for password visibility.
  */
 
 import React, { useState } from 'react';

@@ -1,3 +1,11 @@
+/**
+ * CECUREUS — Native App Tabs Navigation Component
+ *
+ * Why this file was created:
+ * This component provides platform-native tab bar primitives (iOS UITabBar and Android BottomNavigation)
+ * for Expo Router native builds, integrating tab icons and theme tokens.
+ */
+
 import { Colors } from '@/constants/theme';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useColorScheme } from 'react-native';

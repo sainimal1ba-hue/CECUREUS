@@ -1,3 +1,11 @@
+/**
+ * CECUREUS — Collapsible Accordion Disclosure Component
+ *
+ * Why this file was created:
+ * This component provides an expandable/collapsible accordion UI element for FAQ sections,
+ * clinical disclosure notes, and detailed therapist credentials with smooth chevron rotation.
+ */
+
 import { SymbolView } from 'expo-symbols';
 import { PropsWithChildren, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';

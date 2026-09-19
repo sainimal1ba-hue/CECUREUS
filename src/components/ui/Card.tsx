@@ -1,5 +1,9 @@
 /**
- * CECUREUS — Card Component
+ * CECUREUS — Surface Card Container UI Component
+ *
+ * Why this file was created:
+ * This component provides elevated card surfaces matching the soft mint and white aesthetic of the CecureUs design system.
+ * It was created with optional pressable touch feedback (`onPress`), border highlights, and soft multi-platform drop shadows.
  */
 
 import React from 'react';

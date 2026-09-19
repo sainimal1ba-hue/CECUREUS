@@ -1,11 +1,12 @@
 /**
- * CECUREUS — Explore Screen
+ * CECUREUS — Explore & Mental Health Resources Screen
  *
- * Faithfully matches the Figma Explore prototype:
- * - Search bar with filter toggle
- * - Category filter chips (All, Stress, Anxiety, Sleep, Workplace)
- * - 2x2 Self Assessments grid (Stress Level Check, Burnout, Anxiety, Work-Life)
- * - Curated Blogs & Articles
+ * Why this file was created:
+ * This screen provides a rich library of clinically validated self-assessments, educational wellness content, and psychoeducational tools.
+ * It was created to facilitate proactive user discovery:
+ * - Search bar and interactive category filter chips (All, Stress, Anxiety, Sleep, Workplace).
+ * - 2x2 Self-Assessment grid linking directly to dynamic clinical evaluation screens (`/assessment/[id]`).
+ * - Curated wellness articles and coping strategies authored by mental health experts.
  */
 
 import React, { useState } from 'react';

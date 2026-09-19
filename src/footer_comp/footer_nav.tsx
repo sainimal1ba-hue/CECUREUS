@@ -1,3 +1,12 @@
+/**
+ * CECUREUS — Legacy Prototype Footer Navigation Bar
+ *
+ * Why this file was created:
+ * This component was created during early frontend prototyping to validate basic multi-screen routing
+ * between Home, Explore, and Dashboard screens.
+ * In the modern architecture, primary navigation is managed by the unified tab layout in `src/app/(tabs)/_layout.tsx`.
+ */
+
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 export default function FooterNavigation() {

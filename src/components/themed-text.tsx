@@ -1,5 +1,12 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+/**
+ * CECUREUS — Themed Typography Text Component
+ *
+ * Why this file was created:
+ * This component provides theme-aware text rendering automatically responding to light/dark mode color tokens.
+ * It enforces standardized typographic hierarchies: 'default', 'title', 'subtitle', 'small', 'smallBold', 'link', and 'code'.
+ */
 
+import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 import { Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 

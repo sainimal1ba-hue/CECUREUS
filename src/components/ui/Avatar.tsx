@@ -1,5 +1,10 @@
 /**
- * CECUREUS — Avatar Component
+ * CECUREUS — User & Counsellor Avatar UI Component
+ *
+ * Why this file was created:
+ * This component renders circular patient and therapist avatars with remote photo loading,
+ * automatic two-letter monogram fallbacks (e.g. "Sainimal GE" -> "SG"), and optional real-time
+ * online presence indicator dots.
  */
 
 import React from 'react';

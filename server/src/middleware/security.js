@@ -1,8 +1,14 @@
 /**
- * CECUREUS — Security Middleware Stack
+ * CECUREUS — Comprehensive Security Middleware Stack
  *
- * Helmet (security headers), CORS, request IDs, request size limits,
- * request logging, and other security concerns.
+ * Why this file was created:
+ * This module configures HTTP perimeter defense layers for the backend services.
+ * It was created to provide defense-in-depth protection:
+ * - Helmet: Injects defensive HTTP security headers (X-Content-Type-Options, Frameguard, HSTS, DNS-Prefetch).
+ * - CORS: Dynamic origin validation supporting web portals, mobile app clients, local development, and Cloudflare tunnels.
+ * - Compression: Gzip response compression for bandwidth efficiency on mobile networks.
+ * - Request Tracing: Injects UUIDv4 `X-Request-Id` headers for end-to-end distributed transaction tracing.
+ * - Request Logger: Redacted audit logging of HTTP methods, response codes, latencies, and remote IP addresses.
  */
 
 const helmet = require('helmet');

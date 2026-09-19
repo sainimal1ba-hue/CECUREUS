@@ -1,3 +1,12 @@
+/**
+ * CECUREUS — Legacy Prototype Header Component
+ *
+ * Why this file was created:
+ * This component was created during initial screen layout development to display the CecureUs brand logo and title.
+ * In the modern architecture, the top header is implemented by `src/components/ui/Header.tsx`, which integrates
+ * the side drawer toggle, notifications modal, and SVG/PNG brand assets.
+ */
+
 import { Image, StyleSheet, Text, View } from "react-native";
 
 export default function Header() {

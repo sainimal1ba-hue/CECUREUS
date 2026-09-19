@@ -1,8 +1,12 @@
 /**
- * Migration 007 — Self assessments table
+ * CECUREUS Database Migration 007 — Assessments & User Submissions Tables
  *
- * From Figma Explore screen: Self assessments like Stress Level Check,
- * Burnout Assessment, Anxiety Screening, Work-Life Balance Score.
+ * Why this file was created:
+ * This migration implements clinically validated mental health screening tools (e.g. GAD-7, PHQ-9, Burnout Index).
+ * It was created to power the Explore screen assessments and clinical result scoring:
+ * - `assessments`: Defines standardized tests with category tagging, duration, question sets, and scoring bands.
+ * - `assessment_submissions`: Tracks individual user assessment attempts, total scores, severity level classifications
+ *   ('low', 'mild', 'moderate', 'severe'), and personalized recommendations.
  */
 exports.up = async function (conn) {
   // Assessment definitions (admin-managed)

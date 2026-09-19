@@ -1,12 +1,15 @@
 /**
- * CECUREUS — Counsellor Routes
+ * CECUREUS — Counsellor Directory & Appointment Booking Routes
  *
- * GET  /api/counsellors          — List/search counsellors
- * GET  /api/counsellors/:id      — Get counsellor profile
- * POST /api/counsellors/:id/book — Book a session
- * GET  /api/sessions             — List user's sessions
- * GET  /api/sessions/:id         — Get session details
- * PUT  /api/sessions/:id/cancel  — Cancel a session
+ * Why this file was created:
+ * This router connects users with licensed mental health professionals and handles appointment scheduling.
+ * It was created to power the Counsellor tab and session workflows:
+ * - `GET  /api/counsellors`: Paginated search and filtering of verified psychologists by specialty, language, and availability.
+ * - `GET  /api/counsellors/:id`: Detailed clinical biography, credentials, languages, and ratings for a selected therapist.
+ * - `POST /api/counsellors/:id/book`: Creates confirmed therapy appointments (Video Call, Phone Call, or Chat).
+ * - `GET  /api/sessions`: Retrieves active and past therapy appointments for the logged-in user.
+ * - `GET  /api/sessions/:id`: Retrieves full clinical session details and discussion summary.
+ * - `PUT  /api/sessions/:id/cancel`: Enables patient appointment cancellation with audit updates.
  */
 
 const { Router } = require('express');

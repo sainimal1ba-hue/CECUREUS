@@ -1,5 +1,21 @@
-//server.js
-// connection code ,certain code snippits and Debugging is done with Open AI :CHAT GPT
+/**
+ * CECUREUS — Original Monolithic Prototype Backend Server
+ *
+ * Why this file was created:
+ * This script served as the initial foundational proof-of-concept backend for the CecureUs platform.
+ * It was created to prototype and validate:
+ * 1. Core MySQL database connectivity and table schemas.
+ * 2. Cryptographic OTP generation (using crypto.randomInt) and phone verification flow.
+ * 3. Initial user authentication, registration, session management, and profile endpoints.
+ * 4. Verbose request logging for real-time terminal debugging.
+ *
+ * Architectural Note:
+ * For high-availability production deployments, this monolithic script has been architecturally
+ * refactored into the modular, clustered Express application located in `server/src/index.js`,
+ * backed by connection pooling (`server/src/database/pool.js`), Winston structured logging,
+ * security middleware (Helmet, CORS, rate-limiting), and the local Ollama Phi-3 AI engine (`server/src/services/ai-service.js`).
+ * This file remains preserved as a developmental reference and standalone prototype runner.
+ */
 const express = require('express');
 const crypto = require("crypto");
 const app = express();

@@ -1,12 +1,13 @@
 /**
- * CECUREUS — Our Counsellors Screen
+ * CECUREUS — Counsellor Directory & Therapist Discovery Screen
  *
- * Faithfully matches the Figma Counsellor prototype:
- * - Confidentiality & Emergency Helpline 1800 121 9497
- * - Name / Expertise / Language search with filters
- * - Category filter chips (All Counsellors, Anxiety, Stress, Depression)
- * - Counsellor profile cards with avatar, verified badge, rating, specializations
- * - "View Profile" and "Book Session" interactive CTAs
+ * Why this file was created:
+ * This screen provides the patient directory of verified, licensed psychologists and clinical counsellors.
+ * It was created to facilitate human therapist connection:
+ * - Search by therapist name, clinical specialty, or spoken language (English, Hindi, Tamil, Telugu).
+ * - Interactive filter chips (All Counsellors, Anxiety, Stress, Depression, Trauma, Workplace).
+ * - Rich practitioner profile cards with credentials, verified shield badges, aggregate ratings, and experience years.
+ * - Direct CTAs: "View Profile" for detailed therapist bios and "Book Session" to schedule video or phone appointments (`/counsellor/[id]`).
  */
 
 import React, { useState, useEffect } from 'react';

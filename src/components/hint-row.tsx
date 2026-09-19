@@ -1,3 +1,11 @@
+/**
+ * CECUREUS — Informational Hint Row & Snippet Component
+ *
+ * Why this file was created:
+ * This component provides an inline instructional badge layout displaying tips, hints, or code snippets
+ * styled consistently with the design system tokens.
+ */
+
 import type { ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 

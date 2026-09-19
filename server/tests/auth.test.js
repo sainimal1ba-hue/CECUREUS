@@ -1,5 +1,13 @@
 /**
- * CECUREUS — Authentication Unit & Security Tests
+ * CECUREUS — Authentication Unit & Cryptographic Security Test Suite
+ *
+ * Why this file was created:
+ * This test suite verifies the cryptographic correctness, salt randomness, and timing protection of the auth system.
+ * It was created to validate:
+ * - Bcrypt password hashing cost factors, prefix validation, and non-deterministic salt generation.
+ * - Password verification precision (positive matches vs negative rejects).
+ * - Cryptographic session token generation and SHA-256 hash token determinism.
+ * - OTP code formatting, length, and numerical character composition.
  */
 
 const authService = require('../src/services/auth-service');
