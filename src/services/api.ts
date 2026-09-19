@@ -13,7 +13,7 @@
  */
 
 import { getAuthToken } from './storage';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, getFallbackApiUrl } from '../config/api';
 import { networkEvents } from './networkEvents';
 
 export const DEFAULT_API_URL = API_BASE_URL;
@@ -53,8 +53,8 @@ export class ApiError extends Error {
 
 /**
  * Core HTTP Request Wrapper
- * Connects directly to the modular API base URL configured in .env.
- * Never attempts to connect to 127.0.0.1 or arbitrary fallback IPs.
+ * Connects directly to the modular API base URL configured in .env or active tunnel.
+ * If transport fails on the active route, automatically attempts fallback before alerting user.
  */
 export async function apiRequest<T = any>(
   endpoint: string,
@@ -87,38 +87,63 @@ export async function apiRequest<T = any>(
   }
 
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const targetUrl = `${currentBaseUrl}${cleanEndpoint}`;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  let response: Response | null = null;
-  try {
-    response = await fetch(targetUrl, {
-      method,
-      headers: resolvedHeaders,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
-  } catch (err: any) {
-    // Intercept network failure / timeout / socket error
-    networkEvents.notifyError('Unable to connect to CecureUs service. Please check your network connection.');
-    throw new ApiError(
-      'Unable to connect to CecureUs service. Please check your network connection.',
-      0,
-      'NETWORK_ERROR'
-    );
-  } finally {
-    clearTimeout(timer);
+  // Helper to execute a single fetch against a specified base URL
+  async function executeFetch(baseUrl: string): Promise<Response> {
+    const targetUrl = `${baseUrl}${cleanEndpoint}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(targetUrl, {
+        method,
+        headers: resolvedHeaders,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
-  // Handle gateway errors (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
-  if (response.status === 502 || response.status === 503 || response.status === 504) {
+  let response: Response | null = null;
+  let requestSucceeded = false;
+
+  // Attempt 1: Primary active endpoint
+  try {
+    response = await executeFetch(currentBaseUrl);
+    // Treat 502/503/504 as gateway disconnects
+    if (response.status !== 502 && response.status !== 503 && response.status !== 504) {
+      requestSucceeded = true;
+    }
+  } catch (err) {
+    requestSucceeded = false;
+  }
+
+  // Attempt 2: Fallback endpoint if primary failed and a fallback exists
+  if (!requestSucceeded) {
+    const fallbackUrl = getFallbackApiUrl();
+    if (fallbackUrl && fallbackUrl !== currentBaseUrl) {
+      try {
+        const fallbackRes = await executeFetch(fallbackUrl);
+        if (fallbackRes.status !== 502 && fallbackRes.status !== 503 && fallbackRes.status !== 504) {
+          response = fallbackRes;
+          requestSucceeded = true;
+          // Switch to working endpoint so subsequent requests are immediate
+          currentBaseUrl = fallbackUrl;
+        }
+      } catch (fallbackErr) {
+        // Fallback also failed
+      }
+    }
+  }
+
+  // If both failed to connect
+  if (!requestSucceeded || !response) {
     networkEvents.notifyError('Unable to connect to CecureUs service. Please check your network connection.');
     throw new ApiError(
       'Unable to connect to CecureUs service. Please check your network connection.',
-      response.status,
-      'GATEWAY_ERROR'
+      response?.status || 0,
+      'NETWORK_ERROR'
     );
   }
 
