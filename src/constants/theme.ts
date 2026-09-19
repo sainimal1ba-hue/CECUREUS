@@ -111,6 +111,12 @@ export const typography = {
     lineHeight: 14,
     color: colors.textMuted,
   },
+  smallBold: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    lineHeight: 16,
+    color: colors.text,
+  },
 };
 
 export const spacing = {
@@ -129,6 +135,7 @@ export const borderRadius = {
   md: 12,
   lg: 16,
   xl: 20,
+  xxl: 28,
   full: 9999,
 };
 

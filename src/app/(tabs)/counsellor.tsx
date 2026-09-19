@@ -242,14 +242,14 @@ export default function CounsellorScreen() {
                   title="View Profile"
                   variant="tealOutline"
                   size="sm"
-                  onPress={() => router.push(`/counsellor/${c.id}`)}
+                  onPress={() => router.push(`/counsellor/${c.id}?tab=profile`)}
                   style={{ marginBottom: spacing.xs }}
                 />
                 <Button
                   title="Book Session"
                   variant="primary"
                   size="sm"
-                  onPress={() => router.push(`/counsellor/${c.id}`)}
+                  onPress={() => router.push(`/counsellor/${c.id}?action=book`)}
                 />
               </View>
             </View>

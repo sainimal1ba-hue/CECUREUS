@@ -216,7 +216,7 @@ export default function AllyChatScreen() {
             <Text style={styles.allyHeaderName}>Ally</Text>
             <View style={styles.statusRow}>
               <View style={styles.onlineDot} />
-              <Text style={styles.allyHeaderStatus}>Online · Phi-3 AI</Text>
+              <Text style={styles.allyHeaderStatus}>Online</Text>
             </View>
           </View>
         </View>
@@ -242,13 +242,6 @@ export default function AllyChatScreen() {
           onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
         >
-          {/* Reassurance Badge */}
-          <View style={styles.reassurancePill}>
-            <Ionicons name="shield-checkmark" size={13} color="#0D9488" style={{ marginRight: 4 }} />
-            <Text style={styles.reassuranceText}>
-              Confidential &amp; Encrypted · Safe Space
-            </Text>
-          </View>
 
           {messages.map((msg) => {
             const isAlly = msg.role === 'ally';
