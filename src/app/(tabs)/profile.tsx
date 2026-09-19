@@ -6,12 +6,13 @@
  * It was created to provide a centralized account hub:
  * - Patient identity card with verification badges and profile editor modal.
  * - Wellness overview telemetry metrics (Completed Sessions, Read Articles, Assessments Taken, Active Goals).
- * - Longitudinal therapy session history cards with clinician summaries.
- * - Emergency crisis contacts management.
+ * - Longitudinal therapy session history cards with clinician summaries and Zoom meeting links.
+ * - Interactive Session History, Clinical Summary, and Wellness Goals modals.
+ * - Seamless navigation to Blogs (/blogs) and Clinical Assessments (/(tabs)/explore).
  * - Compliant account lifecycle controls (Secure Logout and permanent Account Deletion flows).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +20,8 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
+  ScrollView,
+  Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,12 +33,105 @@ import { Avatar } from '../../components/ui/Avatar';
 import { EmergencyBanner } from '../../components/ui/EmergencyBanner';
 import { useAuth } from '../../context/AuthContext';
 import { colors, typography, spacing, borderRadius, shadows } from '../../constants/theme';
+import { counsellorApi, profileApi } from '../../services/api';
+
+const DEFAULT_SESSIONS = [
+  {
+    id: 'sess_1',
+    counsellor_name: 'Dr. Neha Sharma',
+    counsellor_title: 'Senior Clinical Psychologist',
+    scheduled_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    session_type: 'video_call',
+    status: 'completed',
+    topics: ['Stress & Anxiety', 'Mindfulness'],
+    summary: 'Patient engaged actively in cognitive restructuring exercises. Reviewed work-related triggers and practiced the 4-7-8 breathing reset. Established goal to practice 5 minutes of evening grounding before sleep.',
+    zoomLink: 'https://abc.com/zoom-drneha1',
+    duration_minutes: 45,
+  },
+  {
+    id: 'sess_2',
+    counsellor_name: 'Mr. Rohan Verma',
+    counsellor_title: 'Counselling Psychologist',
+    scheduled_at: new Date(Date.now() - 10 * 86400000).toISOString(),
+    session_type: 'phone_call',
+    status: 'completed',
+    topics: ['Work Stress', 'Burnout'],
+    summary: 'Explored boundary-setting techniques in professional communication. Discussed decoupling self-worth from workload output and establishing a strict 30-minute digital sunset.',
+    zoomLink: 'https://abc.com/zoom-rohanv2',
+    duration_minutes: 45,
+  },
+];
+
+const INITIAL_GOALS = [
+  { id: 'g1', title: 'Daily 4-7-8 Breathing Reset', category: 'Mindfulness', completed: true },
+  { id: 'g2', title: 'Evening Mood Check-In', category: 'Reflection', completed: true },
+  { id: 'g3', title: 'Weekly Therapy Consultation', category: 'Self-Care', completed: false },
+  { id: 'g4', title: '30-Minute Digital Sunset Before Sleep', category: 'Sleep Hygiene', completed: false },
+  { id: 'g5', title: 'Self-Assessment Progress Review', category: 'Tracking', completed: true },
+];
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, deleteAccount } = useAuth();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Dynamic Profile & Session State
+  const [sessions, setSessions] = useState<any[]>(DEFAULT_SESSIONS);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [selectedSummarySession, setSelectedSummarySession] = useState<any | null>(null);
+  const [wellnessGoals, setWellnessGoals] = useState(INITIAL_GOALS);
+  const [wellnessStats, setWellnessStats] = useState({
+    sessionsTaken: 12,
+    blogsCompleted: 18,
+    assessmentsDone: 5,
+    goalsAchieved: 8,
+  });
+
+  // Load real sessions & telemetry on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [sessionRes, profileRes] = await Promise.allSettled([
+          counsellorApi.getMySessions(),
+          profileApi.getProfile(),
+        ]);
+
+        if (sessionRes.status === 'fulfilled' && sessionRes.value?.sessions?.length > 0) {
+          setSessions(sessionRes.value.sessions);
+          setWellnessStats((prev) => ({
+            ...prev,
+            sessionsTaken: sessionRes.value.sessions.length,
+          }));
+        }
+
+        if (profileRes.status === 'fulfilled' && profileRes.value?.wellnessOverview) {
+          const ov = profileRes.value.wellnessOverview;
+          setWellnessStats((prev) => ({
+            ...prev,
+            sessionsTaken: ov.sessionsTaken || prev.sessionsTaken,
+            assessmentsDone: ov.assessmentsDone || prev.assessmentsDone,
+          }));
+        }
+      } catch {}
+    }
+    loadData();
+  }, []);
+
+  const toggleGoal = (id: string) => {
+    setWellnessGoals((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, completed: !g.completed } : g))
+    );
+  };
+
+  const handleCopyLink = async (link: string) => {
+    try {
+      await Share.share({
+        message: `CecureUs Therapy Meeting Link: ${link}`,
+      });
+    } catch {}
+  };
 
   const handleDeleteAccountConfirm = async () => {
     setIsDeleting(true);
@@ -63,6 +159,30 @@ export default function ProfileScreen() {
       },
     ]);
   };
+
+  const formatSessionDate = (isoString?: string) => {
+    if (!isoString) return 'Upcoming';
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    return d.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const formatSessionTime = (isoString?: string) => {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const completedGoalsCount = wellnessGoals.filter((g) => g.completed).length;
 
   return (
     <ScreenContainer>
@@ -103,7 +223,7 @@ export default function ProfileScreen() {
             variant="tealOutline"
             size="sm"
             leftIcon={<Ionicons name="create-outline" size={14} color={colors.primary} style={{ marginRight: 4 }} />}
-            onPress={() => Alert.alert('Edit Profile', 'Profile editing options.')}
+            onPress={() => Alert.alert('Edit Profile', 'Profile details are synced with your registered account.')}
           />
         </View>
       </Card>
@@ -116,50 +236,66 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>My Wellness Overview</Text>
 
         <View style={styles.overviewGrid}>
-          {/* Card 1: Sessions Taken */}
+          {/* Card 1: Sessions Taken -> Opens Session History Modal */}
           <Card style={styles.overviewCard}>
             <View style={styles.overviewIconHeader}>
               <Text style={styles.overviewEmoji}>📅</Text>
-              <Text style={styles.overviewNumber}>12</Text>
+              <Text style={styles.overviewNumber}>{wellnessStats.sessionsTaken}</Text>
             </View>
             <Text style={styles.overviewLabel}>Sessions Taken</Text>
-            <TouchableOpacity activeOpacity={0.7} style={styles.overviewLink}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.overviewLink}
+              onPress={() => setShowHistoryModal(true)}
+            >
               <Text style={styles.overviewLinkText}>View History &gt;</Text>
             </TouchableOpacity>
           </Card>
 
-          {/* Card 2: Blogs Completed */}
+          {/* Card 2: Blogs Completed -> Navigates to /blogs */}
           <Card style={styles.overviewCard}>
             <View style={styles.overviewIconHeader}>
               <Text style={styles.overviewEmoji}>📖</Text>
-              <Text style={styles.overviewNumber}>18</Text>
+              <Text style={styles.overviewNumber}>{wellnessStats.blogsCompleted}</Text>
             </View>
             <Text style={styles.overviewLabel}>Blogs Completed</Text>
-            <TouchableOpacity activeOpacity={0.7} style={styles.overviewLink}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.overviewLink}
+              onPress={() => router.push('/blogs')}
+            >
               <Text style={styles.overviewLinkText}>View All &gt;</Text>
             </TouchableOpacity>
           </Card>
 
-          {/* Card 3: Assessments Done */}
+          {/* Card 3: Assessments Done -> Navigates to /(tabs)/explore */}
           <Card style={styles.overviewCard}>
             <View style={styles.overviewIconHeader}>
               <Text style={styles.overviewEmoji}>📋</Text>
-              <Text style={styles.overviewNumber}>5</Text>
+              <Text style={styles.overviewNumber}>{wellnessStats.assessmentsDone}</Text>
             </View>
             <Text style={styles.overviewLabel}>Assessments Done</Text>
-            <TouchableOpacity activeOpacity={0.7} style={styles.overviewLink}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.overviewLink}
+              onPress={() => router.push('/(tabs)/explore')}
+            >
               <Text style={styles.overviewLinkText}>View Results &gt;</Text>
             </TouchableOpacity>
           </Card>
 
-          {/* Card 4: Goals Achieved */}
+          {/* Card 4: Goals Achieved -> Opens Goals Modal */}
           <Card style={styles.overviewCard}>
             <View style={styles.overviewIconHeader}>
               <Text style={styles.overviewEmoji}>🎯</Text>
-              <Text style={styles.overviewNumber}>8</Text>
+              <Text style={styles.overviewNumber}>{completedGoalsCount}</Text>
             </View>
             <Text style={styles.overviewLabel}>Goals Achieved</Text>
-            <TouchableOpacity activeOpacity={0.7} style={styles.overviewLink}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.overviewLink}
+              onPress={() => setShowGoalsModal(true)}
+            >
               <Text style={styles.overviewLinkText}>View Goals &gt;</Text>
             </TouchableOpacity>
           </Card>
@@ -170,42 +306,56 @@ export default function ProfileScreen() {
       <View style={styles.recentSessionsSection}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Recent Sessions</Text>
-          <TouchableOpacity activeOpacity={0.7}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setShowHistoryModal(true)}
+          >
             <Text style={styles.viewAllText}>View All &gt;</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Session 1 */}
-        <Card style={styles.sessionCard}>
-          <View style={styles.sessionTopRow}>
-            <Avatar name="Dr. Neha Sharma" size={44} backgroundColor="#00A99D" showOnlineDot={true} />
-            <View style={styles.sessionDetails}>
-              <Text style={styles.counsellorSessionName}>Dr. Neha Sharma</Text>
-              <Text style={styles.sessionTimeInfo}>15 May 2025 · 11:00 AM · Video Call</Text>
-              <Badge label="Stress & Anxiety" variant="default" style={{ marginTop: 4 }} />
-            </View>
-            <TouchableOpacity style={styles.summaryButton} activeOpacity={0.7}>
-              <Ionicons name="book-outline" size={14} color={colors.primary} style={{ marginRight: 4 }} />
-              <Text style={styles.summaryButtonText}>View Summary</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
+        {sessions.slice(0, 3).map((session) => {
+          const dateStr = formatSessionDate(session.scheduled_at);
+          const timeStr = formatSessionTime(session.scheduled_at);
+          const modeLabel =
+            session.session_type === 'video_call'
+              ? 'Video Call'
+              : session.session_type === 'phone_call'
+              ? 'Phone Call'
+              : 'Live Chat';
 
-        {/* Session 2 */}
-        <Card style={styles.sessionCard}>
-          <View style={styles.sessionTopRow}>
-            <Avatar name="Mr. Rohan Verma" size={44} backgroundColor="#F59E0B" showOnlineDot={true} />
-            <View style={styles.sessionDetails}>
-              <Text style={styles.counsellorSessionName}>Mr. Rohan Verma</Text>
-              <Text style={styles.sessionTimeInfo}>02 May 2025 · 04:00 PM · Phone Call</Text>
-              <Badge label="Work Stress" variant="default" style={{ marginTop: 4 }} />
-            </View>
-            <TouchableOpacity style={styles.summaryButton} activeOpacity={0.7}>
-              <Ionicons name="book-outline" size={14} color={colors.primary} style={{ marginRight: 4 }} />
-              <Text style={styles.summaryButtonText}>View Summary</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
+          return (
+            <Card key={session.id} style={styles.sessionCard}>
+              <View style={styles.sessionTopRow}>
+                <Avatar
+                  name={session.counsellor_name || 'Clinician'}
+                  size={44}
+                  backgroundColor="#00A99D"
+                  showOnlineDot={true}
+                />
+                <View style={styles.sessionDetails}>
+                  <Text style={styles.counsellorSessionName}>{session.counsellor_name || 'Counsellor'}</Text>
+                  <Text style={styles.sessionTimeInfo}>
+                    {dateStr} {timeStr ? `· ${timeStr}` : ''} · {modeLabel}
+                  </Text>
+                  <Badge
+                    label={Array.isArray(session.topics) && session.topics[0] ? session.topics[0] : 'Mindful Support'}
+                    variant="default"
+                    style={{ marginTop: 4, alignSelf: 'flex-start' }}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.summaryButton}
+                  activeOpacity={0.7}
+                  onPress={() => setSelectedSummarySession(session)}
+                >
+                  <Ionicons name="book-outline" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                  <Text style={styles.summaryButtonText}>View Summary</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          );
+        })}
       </View>
 
       {/* Account Settings & Compliance */}
@@ -228,7 +378,232 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Delete Account Confirmation Modal (App Store / Google Play Compliance) */}
+      {/* ── 1. SESSION SUMMARY MODAL ────────────────────────────────────── */}
+      <Modal visible={!!selectedSummarySession} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.summaryModalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalHeaderTitle}>Session Summary</Text>
+                <Text style={styles.modalHeaderSub}>
+                  {selectedSummarySession?.counsellor_name} · {formatSessionDate(selectedSummarySession?.scheduled_at)}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSelectedSummarySession(null)}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+              {/* Meeting Link Pill if Video Call */}
+              {selectedSummarySession?.zoomLink ? (
+                <View style={styles.zoomCallout}>
+                  <Ionicons name="videocam" size={18} color="#00A99D" style={{ marginRight: 8 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.zoomCalloutTitle}>Meeting Link</Text>
+                    <Text style={styles.zoomCalloutLink} numberOfLines={1}>
+                      {selectedSummarySession.zoomLink}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleCopyLink(selectedSummarySession.zoomLink)}
+                    style={styles.copyLinkBtn}
+                  >
+                    <Text style={styles.copyLinkText}>Share</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* Discussion Focus */}
+              <Text style={styles.summarySectionLabel}>Discussion Focus</Text>
+              <View style={styles.topicsRow}>
+                {(Array.isArray(selectedSummarySession?.topics) ? selectedSummarySession.topics : ['Stress Relief', 'Cognitive Tools']).map(
+                  (t: string, idx: number) => (
+                    <Badge key={idx} label={t} variant="primary" style={{ marginRight: 6, marginBottom: 6 }} />
+                  )
+                )}
+              </View>
+
+              {/* Clinician Notes */}
+              <Text style={[styles.summarySectionLabel, { marginTop: spacing.md }]}>Clinician Notes &amp; Takeaways</Text>
+              <View style={styles.notesBox}>
+                <Text style={styles.notesText}>
+                  {selectedSummarySession?.summary ||
+                    'Patient actively participated in cognitive coping exploration. Highlighted daily stress mitigation strategies, mindful breathing routines, and constructive sleep habits.'}
+                </Text>
+              </View>
+
+              {/* Confidentiality Notice */}
+              <View style={styles.anonAssuranceBox}>
+                <Ionicons name="shield-checkmark" size={16} color="#00A99D" style={{ marginRight: 6 }} />
+                <Text style={styles.anonAssuranceText}>
+                  This record is confidential and private to your account.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <Button
+              title="Close Summary"
+              variant="outline"
+              size="md"
+              fullWidth
+              onPress={() => setSelectedSummarySession(null)}
+              style={{ marginTop: spacing.sm }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── 2. FULL SESSION HISTORY MODAL ──────────────────────────────── */}
+      <Modal visible={showHistoryModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.historyModalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalHeaderTitle}>Session History</Text>
+                <Text style={styles.modalHeaderSub}>All consultations &amp; appointments</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowHistoryModal(false)}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+              {sessions.length === 0 ? (
+                <View style={styles.emptySessionBox}>
+                  <Text style={{ fontSize: 36, marginBottom: 8 }}>📅</Text>
+                  <Text style={styles.emptyTitle}>No sessions booked yet</Text>
+                  <Text style={styles.emptyDesc}>
+                    Connect with our verified psychologists for personalized, anonymous support.
+                  </Text>
+                  <Button
+                    title="Find a Counsellor"
+                    variant="primary"
+                    size="md"
+                    onPress={() => {
+                      setShowHistoryModal(false);
+                      router.push('/(tabs)/counsellor');
+                    }}
+                    style={{ marginTop: spacing.md }}
+                  />
+                </View>
+              ) : (
+                sessions.map((s) => (
+                  <Card key={s.id} style={styles.historySessionCard}>
+                    <View style={styles.historyCardHeader}>
+                      <Avatar name={s.counsellor_name || 'Counsellor'} size={40} backgroundColor="#00A99D" />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.counsellorSessionName}>{s.counsellor_name || 'Counsellor'}</Text>
+                        <Text style={styles.sessionTimeInfo}>
+                          {formatSessionDate(s.scheduled_at)} · {formatSessionTime(s.scheduled_at)}
+                        </Text>
+                      </View>
+                      <Badge
+                        label={s.status === 'completed' ? 'Completed' : 'Confirmed'}
+                        variant={s.status === 'completed' ? 'default' : 'primary'}
+                      />
+                    </View>
+
+                    {s.zoomLink ? (
+                      <View style={styles.historyZoomRow}>
+                        <Ionicons name="videocam-outline" size={14} color="#00A99D" style={{ marginRight: 6 }} />
+                        <Text style={styles.historyZoomText} numberOfLines={1}>
+                          Meeting: {s.zoomLink}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    <View style={styles.historyCardActions}>
+                      <TouchableOpacity
+                        style={styles.viewSummaryPill}
+                        onPress={() => {
+                          setShowHistoryModal(false);
+                          setSelectedSummarySession(s);
+                        }}
+                      >
+                        <Ionicons name="document-text-outline" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                        <Text style={styles.viewSummaryPillText}>View Summary</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Card>
+                ))
+              )}
+            </ScrollView>
+
+            <Button
+              title="Close"
+              variant="outline"
+              size="md"
+              fullWidth
+              onPress={() => setShowHistoryModal(false)}
+              style={{ marginTop: spacing.sm }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── 3. WELLNESS GOALS MODAL ────────────────────────────────────── */}
+      <Modal visible={showGoalsModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.goalsModalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalHeaderTitle}>Wellness Goals</Text>
+                <Text style={styles.modalHeaderSub}>
+                  {completedGoalsCount} of {wellnessGoals.length} completed
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowGoalsModal(false)}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+              {wellnessGoals.map((g) => (
+                <TouchableOpacity
+                  key={g.id}
+                  style={[styles.goalItemCard, g.completed && styles.goalItemCardCompleted]}
+                  activeOpacity={0.8}
+                  onPress={() => toggleGoal(g.id)}
+                >
+                  <Ionicons
+                    name={g.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={22}
+                    color={g.completed ? '#00A99D' : '#94A3B8'}
+                    style={{ marginRight: 12 }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.goalTitle, g.completed && styles.goalTitleCompleted]}>
+                      {g.title}
+                    </Text>
+                    <Text style={styles.goalCategory}>{g.category}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Button
+              title="Done"
+              variant="primary"
+              size="md"
+              fullWidth
+              onPress={() => setShowGoalsModal(false)}
+              style={{ marginTop: spacing.sm }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── 4. DELETE ACCOUNT MODAL ────────────────────────────────────── */}
       <Modal visible={showDeleteModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.deleteModalCard}>
@@ -367,10 +742,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   viewAllText: {
     ...typography.captionBold,
     color: colors.primary,
@@ -419,10 +790,10 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.xl,
+    padding: spacing.lg,
   },
   deleteModalCard: {
     backgroundColor: '#FFFFFF',
@@ -456,5 +827,205 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
   },
-
+  summaryModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '85%',
+  },
+  historyModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '85%',
+  },
+  goalsModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '80%',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalHeaderTitle: {
+    ...typography.h3,
+    color: colors.text,
+  },
+  modalHeaderSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalScrollBody: {
+    marginVertical: spacing.xs,
+  },
+  zoomCallout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderRadius: borderRadius.md,
+    padding: spacing.sm + 2,
+    marginBottom: spacing.md,
+  },
+  zoomCalloutTitle: {
+    ...typography.smallBold,
+    color: '#0F766E',
+    fontSize: 11,
+  },
+  zoomCalloutLink: {
+    ...typography.caption,
+    color: '#00A99D',
+    fontWeight: '600',
+  },
+  copyLinkBtn: {
+    backgroundColor: '#00A99D',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: borderRadius.sm,
+    marginLeft: 8,
+  },
+  copyLinkText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  summarySectionLabel: {
+    ...typography.smallBold,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 11,
+  },
+  topicsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  notesBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  notesText: {
+    ...typography.body,
+    color: colors.text,
+    lineHeight: 20,
+    fontSize: 14,
+  },
+  anonAssuranceBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FAF9',
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  anonAssuranceText: {
+    ...typography.caption,
+    color: '#008B80',
+    fontWeight: '500',
+  },
+  historySessionCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  historyCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyZoomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  historyZoomText: {
+    ...typography.caption,
+    color: '#00A99D',
+    flex: 1,
+    fontWeight: '600',
+  },
+  historyCardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  viewSummaryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E6F7F5',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: borderRadius.sm,
+  },
+  viewSummaryPillText: {
+    ...typography.small,
+    color: colors.primaryDark,
+    fontWeight: '700',
+  },
+  emptySessionBox: {
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  emptyTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  emptyDesc: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  goalItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  goalItemCardCompleted: {
+    backgroundColor: '#F0FDFA',
+    borderColor: '#99F6E4',
+  },
+  goalTitle: {
+    ...typography.bodyBold,
+    color: colors.text,
+    fontSize: 14,
+  },
+  goalTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: colors.textMuted,
+  },
+  goalCategory: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
 });

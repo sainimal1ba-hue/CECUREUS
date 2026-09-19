@@ -17,6 +17,8 @@ const { body, query: queryValidator, param, validationResult } = require('expres
 const { authenticate } = require('../middleware/authenticate');
 const db = require('../database/pool');
 const { v4: uuidv4 } = require('uuid');
+const { sendAppointmentConfirmation } = require('../services/notification-service');
+const logger = require('../config/logger');
 
 const router = Router();
 
@@ -156,21 +158,29 @@ router.post(
       const { sessionType, scheduledAt, durationMinutes, topics } = req.body;
 
       // Use transaction to prevent double-booking race conditions
-      const booking = await db.transaction(async (conn) => {
+      const bookingResult = await db.transaction(async (conn) => {
         // Check idempotency
         if (idempotencyKey) {
           const [existing] = await conn.execute(
-            'SELECT id, status FROM session_bookings WHERE idempotency_key = ?',
+            'SELECT id, status, notes FROM session_bookings WHERE idempotency_key = ?',
             [idempotencyKey]
           );
           if (existing.length > 0) {
-            return { existing: true, booking: existing[0] };
+            let existingNotes = {};
+            try { existingNotes = JSON.parse(existing[0].notes || '{}'); } catch {}
+            return {
+              existing: true,
+              booking: {
+                ...existing[0],
+                zoomLink: existingNotes.zoomLink || `https://abc.com/zoom-${existing[0].id.slice(0, 8)}`,
+              },
+            };
           }
         }
 
         // Verify counsellor exists and is available
         const [counsellors] = await conn.execute(
-          "SELECT id FROM counsellors WHERE id = ? AND status = 'active' AND is_available = 1 FOR SHARE",
+          "SELECT id, name, title FROM counsellors WHERE id = ? AND status = 'active' AND is_available = 1 FOR SHARE",
           [req.params.id]
         );
 
@@ -180,8 +190,17 @@ router.post(
           throw err;
         }
 
+        const counsellor = counsellors[0];
+
+        // Fetch user account details for SMS and Email notifications
+        const [accounts] = await conn.execute(
+          'SELECT id, name, phone, email FROM accounts WHERE id = ?',
+          [req.user.id]
+        );
+        const userAccount = accounts[0] || {};
+
         // Check for scheduling conflicts (same counsellor, overlapping time)
-        const duration = durationMinutes || 60;
+        const duration = durationMinutes || 45;
         const schedDate = new Date(scheduledAt);
         const endDate = new Date(schedDate.getTime() + duration * 60 * 1000);
 
@@ -200,21 +219,71 @@ router.post(
         }
 
         const bookingId = uuidv4();
+        // Generate random meeting link as requested for testing
+        const zoomLink = `https://abc.com/zoom-${bookingId.slice(0, 8)}`;
+        const notesObj = {
+          zoomLink,
+          isAnonymous: true,
+          bookedAt: new Date().toISOString(),
+        };
+
+        // All bookings are confirmed immediately with zero paywall & anonymous privacy
         await conn.execute(
           `INSERT INTO session_bookings
-           (id, account_id, counsellor_id, session_type, scheduled_at, duration_minutes, topics, idempotency_key)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [bookingId, req.user.id, req.params.id, sessionType, schedDate, duration, JSON.stringify(topics || []), idempotencyKey]
+           (id, account_id, counsellor_id, session_type, status, scheduled_at, duration_minutes, topics, notes, idempotency_key)
+           VALUES (?, ?, ?, ?, 'confirmed', ?, ?, ?, ?, ?)`,
+          [
+            bookingId,
+            req.user.id,
+            req.params.id,
+            sessionType,
+            schedDate,
+            duration,
+            JSON.stringify(topics || []),
+            JSON.stringify(notesObj),
+            idempotencyKey,
+          ]
         );
 
-        return { existing: false, booking: { id: bookingId, status: 'pending' } };
+        return {
+          existing: false,
+          booking: {
+            id: bookingId,
+            status: 'confirmed',
+            sessionType,
+            scheduledAt: schedDate.toISOString(),
+            durationMinutes: duration,
+            zoomLink,
+            counsellorName: counsellor.name,
+            counsellorTitle: counsellor.title,
+            isAnonymous: true,
+          },
+          userAccount,
+          counsellor,
+        };
       });
 
-      if (booking.existing) {
-        return res.json({ message: 'Booking already exists', booking: booking.booking });
+      if (bookingResult.existing) {
+        return res.json({ message: 'Booking already exists', booking: bookingResult.booking });
       }
 
-      res.status(201).json({ message: 'Session booked successfully', booking: booking.booking });
+      // Asynchronously dispatch multi-channel notifications (Twilio SMS + Gmail Email)
+      sendAppointmentConfirmation({
+        user: bookingResult.userAccount,
+        counsellor: bookingResult.counsellor,
+        sessionType,
+        scheduledAt,
+        durationMinutes: bookingResult.booking.durationMinutes,
+        zoomLink: bookingResult.booking.zoomLink,
+        bookingId: bookingResult.booking.id,
+      }).catch((notifyErr) => {
+        logger.warn('Appointment confirmation dispatch encountered error', { error: notifyErr.message });
+      });
+
+      res.status(201).json({
+        message: 'Session booked successfully',
+        booking: bookingResult.booking,
+      });
     } catch (error) {
       next(error);
     }
@@ -222,7 +291,7 @@ router.post(
 );
 
 /**
- * GET /api/sessions — List authenticated user's booked sessions
+ * GET /api/counsellors/sessions — List authenticated user's booked sessions
  */
 router.get(
   '/sessions',
@@ -248,7 +317,7 @@ router.get(
 
       const [sessions] = await db.query(
         `SELECT sb.id, sb.session_type, sb.status, sb.scheduled_at, sb.duration_minutes,
-                sb.topics, sb.summary, sb.created_at,
+                sb.topics, sb.notes, sb.summary, sb.created_at,
                 c.id AS counsellor_id, c.name AS counsellor_name, c.title AS counsellor_title,
                 c.avatar_url AS counsellor_avatar
          FROM session_bookings sb
@@ -260,10 +329,19 @@ router.get(
       );
 
       res.json({
-        sessions: sessions.map((s) => ({
-          ...s,
-          topics: typeof s.topics === 'string' ? JSON.parse(s.topics) : s.topics,
-        })),
+        sessions: sessions.map((s) => {
+          let parsedNotes = {};
+          try {
+            parsedNotes = typeof s.notes === 'string' ? JSON.parse(s.notes) : s.notes || {};
+          } catch {}
+
+          return {
+            ...s,
+            topics: typeof s.topics === 'string' ? JSON.parse(s.topics) : s.topics,
+            zoomLink: parsedNotes?.zoomLink || `https://abc.com/zoom-${s.id.slice(0, 8)}`,
+            isAnonymous: true,
+          };
+        }),
       });
     } catch (error) {
       next(error);
