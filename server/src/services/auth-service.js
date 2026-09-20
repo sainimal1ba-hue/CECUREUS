@@ -15,34 +15,14 @@
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
+const http = require('http');
 const nodemailer = require('nodemailer');
-const twilio = require('twilio');
 const db = require('../database/pool');
 const config = require('../config');
 const logger = require('../config/logger');
 
 // Dummy bcrypt hash for timing-attack mitigation on non-existent users
 const DUMMY_HASH = '$2b$12$e8YqJ2mO4nS6w8v0x2z4u.K1L3M5N7P9R1T3V5X7Z9B1D3F5H7J9K';
-
-// Twilio Programmable SMS client
-let twilioClient = null;
-
-function getTwilioClient() {
-  if (twilioClient) return twilioClient;
-
-  if (config.sms.twilioApiKey && config.sms.twilioApiSecret && config.sms.twilioAccountSid) {
-    try {
-      twilioClient = twilio(config.sms.twilioApiKey, config.sms.twilioApiSecret, {
-        accountSid: config.sms.twilioAccountSid,
-      });
-      logger.info('Twilio SMS client initialized', { accountSid: config.sms.twilioAccountSid });
-    } catch (err) {
-      logger.error('Failed to initialize Twilio client', { error: err.message });
-    }
-  }
-
-  return twilioClient;
-}
 
 // Nodemailer transporter (Gmail / SMTP)
 let emailTransporter = null;
@@ -320,105 +300,90 @@ async function createOTP(identifier, purpose) {
     [id, identifier, codeHash, purpose, expiresAt]
   );
 
-  // SMS Phone Verification via Twilio Programmable Messaging
+  // SMS Phone Verification via SMSIntegra
   if (!identifier.includes('@')) {
-    const rawDigits = identifier.replace(/[^0-9+]/g, '').trim();
-    const formattedPhone = rawDigits.startsWith('+')
-      ? rawDigits
-      : rawDigits.length === 10
-      ? `+91${rawDigits}`
-      : `+${rawDigits}`;
+    const rawDigits = identifier.replace(/[^0-9]/g, '').trim();
+    const mobileNumber = rawDigits.length > 10 ? rawDigits.slice(-10) : rawDigits;
 
-    let twilioDispatchStatus = 'Pending / Local Fallback';
-    let twilioSid = null;
+    let smsDispatchStatus = 'Pending / Local Fallback';
+    const smsConfig = config.sms.smsintegra;
 
-    const twilio = getTwilioClient();
-    if (twilio) {
+    if (smsConfig.uid && smsConfig.password) {
       try {
-        logger.info('Dispatching SMS OTP via Twilio Programmable Messaging', {
-          to: formattedPhone,
-          accountSid: config.sms.twilioAccountSid,
+        logger.info('Dispatching SMS OTP via SMSIntegra', { to: mobileNumber });
+
+        // CecureUs OTP SMS template (DLT approved)
+        const smsMessage = `Use ${code} as one time password (OTP) to login to your CecureUs EAP portal. Valid for 10 minutes.`;
+
+        const now = new Date();
+        const dtTimeNow = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+        const params = new URLSearchParams({
+          uid: smsConfig.uid,
+          pwd: String(smsConfig.password),
+          mobile: mobileNumber,
+          msg: smsMessage,
+          sid: smsConfig.senderId,
+          type: '0',
+          dtTimeNow: dtTimeNow,
+          entityid: smsConfig.entityId,
+          tempid: smsConfig.otpTemplateId,
         });
 
-        const smsPayload = {
-          body: `Your CECUREUS verification code is: ${code}. Valid for ${config.otp.expiryMinutes} minutes. Do not share this OTP with anyone.`,
-          to: formattedPhone,
-        };
+        const apiUrl = `${smsConfig.baseUrl}?${params.toString()}`;
 
-        if (config.sms.twilioPhoneNumber) {
-          smsPayload.from = config.sms.twilioPhoneNumber;
-        }
-        if (config.sms.twilioMessagingServiceSid) {
-          smsPayload.messagingServiceSid = config.sms.twilioMessagingServiceSid;
-        }
-
-        if (!smsPayload.from && !smsPayload.messagingServiceSid) {
-          logger.warn(
-            'Twilio SMS notice: No TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID configured yet in .env. Buy a Twilio phone number in Console to dispatch directly over carrier networks.',
-            { accountSid: config.sms.twilioAccountSid }
-          );
-          twilioDispatchStatus = 'Twilio Configured (Requires TWILIO_PHONE_NUMBER in .env)';
+        if (!smsConfig.liveEnabled) {
+          smsDispatchStatus = 'Simulated (Gateway paused to preserve credits)';
+          logger.info('SMSIntegra simulated OTP dispatch (live API paused to preserve credits)', {
+            to: mobileNumber,
+            code,
+          });
         } else {
-          const twilioRes = await twilio.messages.create(smsPayload);
-          twilioSid = twilioRes.sid;
-          twilioDispatchStatus = `Sent (${twilioRes.status}, SID: ${twilioRes.sid})`;
-          logger.info('Twilio SMS sent successfully', { sid: twilioRes.sid, status: twilioRes.status, to: formattedPhone });
+          const response = await new Promise((resolve, reject) => {
+            const req = http.get(apiUrl, (res) => {
+              let data = '';
+              res.on('data', (chunk) => { data += chunk; });
+              res.on('end', () => resolve({ statusCode: res.statusCode, body: data }));
+            });
+            req.on('error', reject);
+            req.setTimeout(15000, () => {
+              req.destroy();
+              reject(new Error('SMSIntegra request timed out after 15s'));
+            });
+          });
+
+          smsDispatchStatus = `HTTP ${response.statusCode} — ${response.body.trim().substring(0, 100)}`;
+          logger.info('SMSIntegra OTP SMS dispatched', {
+            to: mobileNumber,
+            statusCode: response.statusCode,
+            response: response.body.trim().substring(0, 200),
+          });
         }
-      } catch (twilioErr) {
-        twilioDispatchStatus = `Twilio Error: ${twilioErr.message}`;
-        logger.warn('Twilio SMS dispatch attempt failed', {
-          error: twilioErr.message,
-          code: twilioErr.code,
-          moreInfo: twilioErr.moreInfo,
-          to: formattedPhone,
-        });
-      }
-    } else if (config.sms.apiKey) {
-      // Fallback gateway integration if configured
-      try {
-        const https = require('https');
-        const postData = JSON.stringify({
-          route: 'otp',
-          variables_values: code,
-          numbers: rawDigits.replace(/^\+91/, '').trim(),
-        });
-        const req = https.request(
-          'https://www.fast2sms.com/dev/bulkV2',
-          {
-            method: 'POST',
-            headers: {
-              authorization: config.sms.apiKey,
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(postData),
-            },
-          },
-          (res) => {
-            logger.info('SMS gateway response status', { statusCode: res.statusCode });
-          }
-        );
-        req.on('error', (e) => logger.warn('SMS gateway call failed', { error: e.message }));
-        req.write(postData);
-        req.end();
       } catch (smsErr) {
-        logger.warn('SMS dispatch error', { error: smsErr.message });
+        smsDispatchStatus = `SMSIntegra Error: ${smsErr.message}`;
+        logger.warn('SMSIntegra OTP SMS dispatch failed', {
+          error: smsErr.message,
+          to: mobileNumber,
+        });
       }
     }
 
     // Always log clean SMS banner to terminal for instant developer/admin verification & testing
-    console.log('\n======================================================================');
-    console.log('📱 [CECUREUS SMS OTP — TWILIO PROGRAMMABLE SMS]');
-    console.log(`👉 Recipient Phone:    ${formattedPhone} (Raw: ${identifier})`);
+    console.log('\\n======================================================================');
+    console.log('📱 [CECUREUS SMS OTP — SMSINTEGRA]');
+    console.log(`👉 Recipient Phone:    ${mobileNumber} (Raw: ${identifier})`);
     console.log(`👉 6-Digit OTP Code:   ${code}`);
     console.log(`👉 Validity:           ${config.otp.expiryMinutes} minutes`);
     console.log(`👉 Purpose:            ${purpose}`);
-    console.log(`👉 Twilio Status:      ${twilioDispatchStatus}`);
-    if (twilioSid) console.log(`👉 Twilio Message SID: ${twilioSid}`);
-    console.log('======================================================================\n');
-    logger.info('SMS OTP generated for phone', { phone: formattedPhone, devOtpCode: code, otpId: id });
+    console.log(`👉 SMSIntegra Status:  ${smsDispatchStatus}`);
+    console.log('======================================================================\\n');
+    logger.info('SMS OTP generated for phone', { phone: mobileNumber, devOtpCode: code, otpId: id });
   } else {
     // Gmail Verification -> Dispatched directly to user's Gmail inbox
+    // Using the exact CecureUs branded HTML email template provided
     logger.info('Gmail OTP created for email delivery', { email: identifier, otpId: id });
 
+    const MAIN_URL = 'https://www.cecureus.com/';
     const transporter = getEmailTransporter();
     if (transporter) {
       try {
@@ -427,14 +392,53 @@ async function createOTP(identifier, purpose) {
           to: identifier,
           subject: 'CecureUs — Email Verification Code',
           html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 28px; background: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0;">
-              <h2 style="color: #00A99D; margin-top: 0;">CecureUs Email Verification</h2>
-              <p style="color: #475569; font-size: 15px; line-height: 24px;">Your confidential verification code is:</p>
-              <div style="background: #F0FDFA; border: 1.5px solid #00A99D; border-radius: 12px; padding: 18px; text-align: center; margin: 24px 0;">
-                <span style="font-size: 34px; font-weight: 800; letter-spacing: 6px; color: #00A99D;">${code}</span>
-              </div>
-              <p style="color: #94A3B8; font-size: 13px;">This code is valid for 15 minutes. If you did not request this, please ignore this email.</p>
-            </div>
+            <body marginheight="0" topmargin="0" marginwidth="0" style="margin: 0px; background-color: #f2f3f8;" leftmargin="0">
+              <table cellspacing="0" border="0" cellpadding="0" width="100%" bgcolor="#fdfdfd" style="@import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700); font-family: 'Open Sans', sans-serif;">
+                <tr><td>
+                  <table style="background-color:#fdfdfd;max-width:670px;margin:0 auto;" width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                    <tr><td style="height:80px;">&nbsp;</td></tr>
+                    <tr>
+                      <td style="text-align:left;">
+                        <a href="${MAIN_URL}" title="logo" target="_blank">
+                          <img width="170" src="https://mljlkjauwvnt.i.optimole.com/JrdXglA-nEdEr7UG/w:auto/h:auto/q:auto/${MAIN_URL}wp-content/uploads/2020/10/CecurusLogoV5-02.png">
+                        </a>
+                      </td>
+                    </tr>
+                    <tr><td style="height:20px;">&nbsp;</td></tr>
+                    <tr><td>
+                      <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" style="max-width:670px;background:#fff; border-radius:3px; text-align:center;-webkit-box-shadow:0 6px 18px 0 rgba(0,0,0,.06);-moz-box-shadow:0 6px 18px 0 rgba(0,0,0,.06);box-shadow:0 6px 18px 0 rgba(0,0,0,.06);">
+                        <tr><td style="height:40px;">&nbsp;</td></tr>
+                        <tr><td style="padding:0 35px;">
+                          <p style="text-align: left; font-size: 20px;margin: 0; padding: 0 0 35px;">Hello,</p>
+                          <h1 style="color:#1e1e2d; text-align:left; font-weight:700; line-height: 30px; margin:0;font-size:20px;">
+                            We have received a request for OTP. Please use the below OTP.
+                          </h1>
+                          <h4 style="font-size: 34px; font-weight: 800; letter-spacing: 6px; color: #00A99D; margin: 20px 0;">${code}</h4>
+                          <p style="color:#455056; text-align: left; padding:0 0 35px; font-size:15px;line-height:24px; margin:0;">OTP will be valid for 10 minutes.</p>
+                          <p style="color:#455056; text-align: left; padding:0 0 35px; font-size:15px;line-height:24px; margin:0;">For any support, drop a mail to wellness@cecureus.com</p>
+                          <p style="color:#455056; text-align: left; font-size:15px;line-height:24px; margin:0;">
+                            Stay Cecure & Well!<br/>
+                            Warm Regards,<br/>
+                            CecureUs Wellness Team.
+                          </p>
+                        </td></tr>
+                        <tr><td style="height:40px;">&nbsp;</td></tr>
+                      </table>
+                    </td></tr>
+                    <tr><td style="height:20px;">&nbsp;</td></tr>
+                    <tr>
+                      <td style="text-align:center;">
+                        <a href="${MAIN_URL}" title="logo" target="_blank">
+                          <img width="130" src="https://mljlkjauwvnt.i.optimole.com/JrdXglA-nEdEr7UG/w:auto/h:auto/q:auto/${MAIN_URL}wp-content/uploads/2020/10/CecurusLogoV5-02.png">
+                        </a>
+                        <p style="font-size:14px; color:rgba(69, 80, 86, 0.74); line-height:18px; margin:0 0 0;">&copy; <strong>www.cecureus.com</strong></p>
+                      </td>
+                    </tr>
+                    <tr><td style="height:80px;">&nbsp;</td></tr>
+                  </table>
+                </td></tr>
+              </table>
+            </body>
           `,
         });
         logger.info('Verification email dispatched to Gmail', { email: identifier });
@@ -514,6 +518,7 @@ module.exports = {
   revokeSession,
   registerAccount,
   findAccountByPhone,
+  findAccountByIdentifier,
   findAccountById,
   login,
   deleteAccount,

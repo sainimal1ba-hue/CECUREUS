@@ -71,13 +71,21 @@ const config = {
   },
 
   sms: {
-    provider: env.SMS_PROVIDER || 'twilio',
-    twilioAccountSid: env.TWILIO_ACCOUNT_SID || '',
-    twilioApiKey: env.TWILIO_API_KEY || '',
-    twilioApiSecret: env.TWILIO_API_SECRET || '',
-    twilioPhoneNumber: env.TWILIO_PHONE_NUMBER || '',
-    twilioMessagingServiceSid: env.TWILIO_MESSAGING_SERVICE_SID || '',
+    provider: env.SMS_PROVIDER || 'smsintegra',
     apiKey: env.SMS_API_KEY || '',
+    // SMSIntegra (smsintegra.com) — primary SMS gateway
+    liveEnabled: env.SMSINTEGRA_LIVE_ENABLED === 'true', // Paused by default to conserve limited API credits
+    smsintegra: {
+      uid: env.SMSINTEGRA_UID || 'cecureustrans',
+      password: env.SMSINTEGRA_PASSWORD || '19125',
+      senderId: env.SMSINTEGRA_SENDER_ID || 'Cecure',
+      entityId: env.SMSINTEGRA_ENTITY_ID || '1601205161094588870',
+      otpTemplateId: env.SMSINTEGRA_OTP_TEMPLATE_ID || '1607100000000091405',
+      baseUrl: env.SMSINTEGRA_BASE_URL || 'http://www.smsintegra.com/api/smsapi.aspx',
+      liveEnabled: env.SMSINTEGRA_LIVE_ENABLED === 'true',
+    },
+    // Admin number to notify on every booking (point 8 of meeting)
+    adminNotifyPhone: env.ADMIN_NOTIFY_PHONE || '7200500221',
   },
 
   ai: {

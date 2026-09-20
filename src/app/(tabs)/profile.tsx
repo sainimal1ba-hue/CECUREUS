@@ -358,6 +358,44 @@ export default function ProfileScreen() {
         })}
       </View>
 
+      {/* Legal & Policies (Google Play Store Compliance) */}
+      <View style={styles.legalSection}>
+        <Text style={styles.sectionTitle}>Legal &amp; Compliance</Text>
+        <Card style={styles.legalMenuCard}>
+          <TouchableOpacity
+            style={styles.legalMenuItem}
+            onPress={() => router.push('/privacy')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.legalMenuIconCircle}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#00A99D" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.legalMenuTitle}>Privacy Policy</Text>
+              <Text style={styles.legalMenuSubtitle}>Data safety, encryption &amp; privacy rights</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={styles.legalDivider} />
+
+          <TouchableOpacity
+            style={styles.legalMenuItem}
+            onPress={() => router.push('/terms')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.legalMenuIconCircle}>
+              <Ionicons name="document-text-outline" size={20} color="#00A99D" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.legalMenuTitle}>Terms of Service</Text>
+              <Text style={styles.legalMenuSubtitle}>EAP terms, medical disclaimers &amp; guidelines</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </Card>
+      </View>
+
       {/* Account Settings & Compliance */}
       <View style={styles.accountActionsSection}>
         <Button
@@ -1027,5 +1065,41 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  legalSection: {
+    marginBottom: spacing.xl,
+  },
+  legalMenuCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  legalMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  legalMenuIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E6F7F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  legalMenuTitle: {
+    ...typography.bodyBold,
+    color: colors.text,
+    fontSize: 14,
+  },
+  legalMenuSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+    fontSize: 11,
+  },
+  legalDivider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginLeft: 56,
   },
 });

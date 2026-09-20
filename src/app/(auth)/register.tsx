@@ -647,7 +647,9 @@ export default function RegisterScreen() {
                 CecureUs is a digital mental wellness and psychological counseling platform. It is NOT an emergency response facility. If you or someone you know is experiencing acute psychiatric distress, self-harm impulses, or life-threatening danger, please immediately contact emergency services:
               </Text>
               <Text style={styles.emergencyNumbers}>• National Emergency Services: 112 (India) / 911 (US)</Text>
-              <Text style={styles.emergencyNumbers}>• National Suicide &amp; Crisis Lifeline: 988 (US) / 1800-599-0019 (KIRAN)</Text>
+              <Text style={styles.emergencyNumbers}>• Tele-MANAS (Govt of India 24/7 Helpline): 14416 / 1800-891-4416</Text>
+              <Text style={styles.emergencyNumbers}>• Vandrevala Foundation (Free Suicide Prevention): 9999 666 555</Text>
+              <Text style={styles.emergencyNumbers}>• CecureUs Careline: 1800 121 9497 · WhatsApp: +91 72005 00221</Text>
             </View>
 
             <Text style={styles.legalSectionTitle}>1. Scope of Digital Services</Text>

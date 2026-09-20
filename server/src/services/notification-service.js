@@ -3,35 +3,18 @@
  *
  * Why this file was created:
  * When users schedule a therapy consultation, instant confirmations must be dispatched
- * across both mobile SMS (via Twilio Programmable Messaging) and Email (via Gmail SMTP).
+ * across both mobile SMS (via SMSIntegra gateway) and Email (via Gmail SMTP).
  * It sends confidential session confirmations with generated Zoom/meeting links
  * while preserving complete anonymity (masking names and highlighting reference IDs).
+ *
+ * SMS Integration: SMSIntegra (smsintegra.com)
+ * Credentials: uid=cecureustrans, sid=Cecure, entityid=1601205161094588870
  */
 
+const http = require('http');
 const nodemailer = require('nodemailer');
-const twilio = require('twilio');
 const config = require('../config');
 const logger = require('../config/logger');
-
-// Twilio Programmable SMS client singleton
-let twilioClient = null;
-
-function getTwilioClient() {
-  if (twilioClient) return twilioClient;
-
-  if (config.sms.twilioApiKey && config.sms.twilioApiSecret && config.sms.twilioAccountSid) {
-    try {
-      twilioClient = twilio(config.sms.twilioApiKey, config.sms.twilioApiSecret, {
-        accountSid: config.sms.twilioAccountSid,
-      });
-      logger.info('Twilio SMS client initialized for notifications', { accountSid: config.sms.twilioAccountSid });
-    } catch (err) {
-      logger.error('Failed to initialize Twilio client for notifications', { error: err.message });
-    }
-  }
-
-  return twilioClient;
-}
 
 // Nodemailer transporter singleton (Gmail SMTP)
 let emailTransporter = null;
@@ -41,7 +24,7 @@ function getEmailTransporter() {
 
   const gmailUser = process.env.GMAIL_USER ? process.env.GMAIL_USER.trim() : null;
   const gmailPass = process.env.GMAIL_APP_PASSWORD
-    ? process.env.GMAIL_APP_PASSWORD.replace(/\s+/g, '').trim()
+    ? process.env.GMAIL_APP_PASSWORD.replace(/\\s+/g, '').trim()
     : null;
 
   if (gmailUser && gmailPass) {
@@ -59,60 +42,110 @@ function getEmailTransporter() {
 }
 
 /**
- * Dispatch SMS notification via Twilio
+ * Dispatch SMS via SMSIntegra HTTP API
+ * API: http://www.smsintegra.com/api/smsapi.aspx?uid=...&pwd=...&mobile=...&msg=...&sid=...&type=0&dtTimeNow=...&entityid=...&tempid=...
+ *
+ * @param {string} toPhone - Recipient phone number (10 digits or with +91)
+ * @param {string} messageBody - SMS content (will be URL-encoded)
+ * @param {string} [templateId] - DLT template ID (defaults to OTP template)
  */
-async function sendSMS(toPhone, messageBody) {
+async function sendSMS(toPhone, messageBody, templateId) {
   if (!toPhone) return { success: false, reason: 'No phone number provided' };
 
-  const rawDigits = String(toPhone).replace(/[^0-9+]/g, '').trim();
-  const formattedPhone = rawDigits.startsWith('+')
-    ? rawDigits
-    : rawDigits.length === 10
-    ? `+91${rawDigits}`
-    : `+${rawDigits}`;
+  // Normalize to 10 digits (Indian mobile)
+  const rawDigits = String(toPhone).replace(/[^0-9]/g, '').trim();
+  const mobileNumber = rawDigits.length > 10 ? rawDigits.slice(-10) : rawDigits;
 
-  const client = getTwilioClient();
+  const smsConfig = config.sms.smsintegra;
+
+  if (!smsConfig.uid || !smsConfig.password) {
+    logger.warn('SMSIntegra not configured (missing UID or password)');
+
+    // Developer terminal audit log
+    console.log('\\n======================================================================');
+    console.log('📱 [CECUREUS SMS — SMSINTEGRA (NOT CONFIGURED)]');
+    console.log(`👉 Recipient:   ${mobileNumber} (Raw: ${toPhone})`);
+    console.log(`👉 Content:     ${messageBody}`);
+    console.log(`👉 Status:      SMSIntegra credentials missing`);
+    console.log('======================================================================\\n');
+
+    return { success: false, reason: 'SMSIntegra not configured' };
+  }
+
+  // Build the API URL per the SMSIntegra format provided
+  const now = new Date();
+  const dtTimeNow = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+  const params = new URLSearchParams({
+    uid: smsConfig.uid,
+    pwd: String(smsConfig.password),
+    mobile: mobileNumber,
+    msg: messageBody,
+    sid: smsConfig.senderId,
+    type: '0',
+    dtTimeNow: dtTimeNow,
+    entityid: smsConfig.entityId,
+    tempid: templateId || smsConfig.otpTemplateId,
+  });
+
+  const apiUrl = `${smsConfig.baseUrl}?${params.toString()}`;
+
+  // Protect limited SMS credits: Do not make live HTTP calls unless explicitly enabled via SMSINTEGRA_LIVE_ENABLED=true
+  if (!smsConfig.liveEnabled) {
+    logger.info('SMSIntegra simulated dispatch (live gateway paused to conserve API credits)', {
+      to: mobileNumber,
+      templateId: templateId || smsConfig.otpTemplateId,
+    });
+
+    console.log('\n======================================================================');
+    console.log('📱 [CECUREUS SMS — SMSINTEGRA (SAFE MODE — CREDITS PROTECTED)]');
+    console.log(`👉 Recipient:   ${mobileNumber} (Raw: ${toPhone})`);
+    console.log(`👉 Content:     ${messageBody}`);
+    console.log(`👉 Template ID: ${templateId || smsConfig.otpTemplateId}`);
+    console.log(`👉 Status:      SIMULATED SUCCESS (Live API call withheld to preserve quota)`);
+    console.log(`👉 Live URL:    ${apiUrl}`);
+    console.log('======================================================================\n');
+
+    return { success: true, status: 'Simulated (credits protected)', simulated: true };
+  }
+
   let dispatchStatus = 'Pending';
-  let sid = null;
 
-  if (client) {
-    try {
-      const smsPayload = {
-        body: messageBody,
-        to: formattedPhone,
-      };
+  try {
+    const response = await new Promise((resolve, reject) => {
+      const req = http.get(apiUrl, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => resolve({ statusCode: res.statusCode, body: data }));
+      });
+      req.on('error', reject);
+      req.setTimeout(15000, () => {
+        req.destroy();
+        reject(new Error('SMSIntegra request timed out after 15s'));
+      });
+    });
 
-      if (config.sms.twilioPhoneNumber) {
-        smsPayload.from = config.sms.twilioPhoneNumber;
-      }
-      if (config.sms.twilioMessagingServiceSid) {
-        smsPayload.messagingServiceSid = config.sms.twilioMessagingServiceSid;
-      }
-
-      if (smsPayload.from || smsPayload.messagingServiceSid) {
-        const res = await client.messages.create(smsPayload);
-        sid = res.sid;
-        dispatchStatus = `Sent (${res.status}, SID: ${res.sid})`;
-        logger.info('SMS dispatched successfully', { sid: res.sid, to: formattedPhone });
-      } else {
-        dispatchStatus = 'Twilio Configured (Requires TWILIO_PHONE_NUMBER)';
-      }
-    } catch (err) {
-      dispatchStatus = `Twilio Error: ${err.message}`;
-      logger.warn('Twilio SMS dispatch attempt failed', { error: err.message, to: formattedPhone });
-    }
+    dispatchStatus = `HTTP ${response.statusCode} — ${response.body.trim().substring(0, 100)}`;
+    logger.info('SMSIntegra SMS dispatched', {
+      to: mobileNumber,
+      statusCode: response.statusCode,
+      response: response.body.trim().substring(0, 200),
+    });
+  } catch (err) {
+    dispatchStatus = `SMSIntegra Error: ${err.message}`;
+    logger.warn('SMSIntegra SMS dispatch failed', { error: err.message, to: mobileNumber });
   }
 
   // Developer terminal audit log
-  console.log('\n======================================================================');
-  console.log('📱 [CECUREUS APPOINTMENT SMS — TWILIO DISPATCH]');
-  console.log(`👉 Recipient:   ${formattedPhone}`);
+  console.log('\\n======================================================================');
+  console.log('📱 [CECUREUS SMS — SMSINTEGRA DISPATCH]');
+  console.log(`👉 Recipient:   ${mobileNumber} (Raw: ${toPhone})`);
   console.log(`👉 Content:     ${messageBody}`);
+  console.log(`👉 Template ID: ${templateId || smsConfig.otpTemplateId}`);
   console.log(`👉 Status:      ${dispatchStatus}`);
-  if (sid) console.log(`👉 SID:         ${sid}`);
-  console.log('======================================================================\n');
+  console.log('======================================================================\\n');
 
-  return { success: !!sid, status: dispatchStatus, sid };
+  return { success: !dispatchStatus.includes('Error'), status: dispatchStatus };
 }
 
 /**
@@ -145,7 +178,7 @@ async function sendEmail({ to, subject, html, text }) {
 
 /**
  * High-level orchestration for appointment confirmation
- * Sends both SMS and Email with meeting Zoom link
+ * Sends SMS to user, SMS to admin (7200500221), and Email to user
  */
 async function sendAppointmentConfirmation({
   user,
@@ -179,14 +212,20 @@ async function sendAppointmentConfirmation({
   const counsellorName = counsellor?.name || 'Your Assigned Counsellor';
   const referenceCode = `CE-${bookingId ? bookingId.slice(0, 6).toUpperCase() : Math.floor(10000 + Math.random() * 90000)}`;
 
-  // 1. Send SMS Notification
+  // 1. Send SMS to USER via SMSIntegra
   if (user?.phone) {
-    const smsMessage = `CecureUs: Your anonymous ${modeLabel} with ${counsellorName} is confirmed for ${formattedDate} at ${formattedTime} IST. Join Zoom link: ${zoomLink} (Ref: ${referenceCode}). Your identity is 100% confidential.`;
+    const smsMessage = `CecureUs: Your ${modeLabel} with ${counsellorName} is confirmed for ${formattedDate} at ${formattedTime} IST. Join: ${zoomLink} (Ref: ${referenceCode}). 100% confidential.`;
     sendSMS(user.phone, smsMessage).catch(() => {});
   }
 
-  // 2. Send Email Notification
+  // 2. Send SMS to ADMIN (7200500221) — meeting point #8
+  const adminPhone = config.sms.adminNotifyPhone || '7200500221';
+  const adminMsg = `New CecureUs Booking: ${modeLabel} with ${counsellorName} on ${formattedDate} at ${formattedTime} IST. Duration: ${durationMinutes}min. Ref: ${referenceCode}.`;
+  sendSMS(adminPhone, adminMsg).catch(() => {});
+
+  // 3. Send Email Notification to USER
   if (user?.email) {
+    const MAIN_URL = 'https://www.cecureus.com/';
     const html = `
       <!DOCTYPE html>
       <html>
@@ -216,7 +255,10 @@ async function sendAppointmentConfirmation({
       <body>
         <div class="container">
           <div class="header">
-            <h1>CecureUs Consultation Confirmed</h1>
+            <a href="${MAIN_URL}" target="_blank">
+              <img width="170" src="https://mljlkjauwvnt.i.optimole.com/JrdXglA-nEdEr7UG/w:auto/h:auto/q:auto/${MAIN_URL}wp-content/uploads/2020/10/CecurusLogoV5-02.png" alt="CecureUs">
+            </a>
+            <h1 style="margin-top:12px;">Consultation Confirmed</h1>
             <span class="badge">100% Anonymous & Confidential</span>
           </div>
           <div class="body">
@@ -246,17 +288,26 @@ async function sendAppointmentConfirmation({
             </div>
 
             <div class="zoom-box">
-              <div class="zoom-title">Your Zoom Meeting Room</div>
-              <a href="${zoomLink}" class="zoom-btn" target="_blank">Join Zoom Consultation</a>
+              <div class="zoom-title">Your Meeting Room</div>
+              <a href="${zoomLink}" class="zoom-btn" target="_blank">Join Consultation</a>
               <div class="zoom-link">${zoomLink}</div>
             </div>
 
-            <div class="privacy-note">
-              🛡️ <strong>Zero PII Exposure:</strong> No payment details, legal names, or contact data are shared with the clinician.
-            </div>
+            <p style="color:#455056; text-align:left; font-size:15px; line-height:24px; margin:0 0 20px;">
+              For any support, drop a mail to wellness@cecureus.com
+            </p>
+
+            <p style="color:#455056; text-align:left; font-size:15px; line-height:24px; margin:0;">
+              Stay Cecure & Well!<br/>
+              Warm Regards,<br/>
+              CecureUs Wellness Team.
+            </p>
           </div>
           <div class="footer">
-            CecureUs Mental Health Platform · 24/7 Helpline: 14416 / 1800-891-4416
+            <a href="${MAIN_URL}" target="_blank">
+              <img width="130" src="https://mljlkjauwvnt.i.optimole.com/JrdXglA-nEdEr7UG/w:auto/h:auto/q:auto/${MAIN_URL}wp-content/uploads/2020/10/CecurusLogoV5-02.png" alt="CecureUs">
+            </a>
+            <p style="font-size:14px; color:rgba(69, 80, 86, 0.74); line-height:18px; margin:8px 0 0;">&copy; <strong>www.cecureus.com</strong></p>
           </div>
         </div>
       </body>
@@ -267,7 +318,7 @@ async function sendAppointmentConfirmation({
       to: user.email,
       subject: `CecureUs — Appointment Confirmed with ${counsellorName} (${formattedDate})`,
       html,
-      text: `Your anonymous appointment with ${counsellorName} is confirmed for ${formattedDate} at ${formattedTime} IST. Zoom Link: ${zoomLink}`,
+      text: `Your appointment with ${counsellorName} is confirmed for ${formattedDate} at ${formattedTime} IST. Meeting Link: ${zoomLink}. For support: wellness@cecureus.com. Stay Cecure & Well!`,
     }).catch(() => {});
   }
 }

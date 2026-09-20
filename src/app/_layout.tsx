@@ -30,8 +30,9 @@ function RootNavigator() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const isPublicLegal = segments[0] === 'privacy' || segments[0] === 'terms';
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup && !isPublicLegal) {
       // Direct unauthenticated user to Login screen first
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
@@ -46,6 +47,8 @@ function RootNavigator() {
       <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/otp" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="privacy" options={{ headerShown: false, presentation: 'card' }} />
+      <Stack.Screen name="terms" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="counsellor/[id]" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="assessment/[id]" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="chat/[id]" options={{ headerShown: false, presentation: 'modal' }} />
