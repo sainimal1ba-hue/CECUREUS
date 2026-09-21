@@ -53,5 +53,18 @@ module.exports = {
       watch: false,
       ignore_watch: ['node_modules', 'logs', 'tests'],
     },
+    {
+      name: 'cecureus-tunnel',
+      script: 'cloudflared',
+      args: process.env.TUNNEL_ARGS || 'tunnel --url http://localhost:3000',
+      exec_mode: 'fork',
+      instances: 1,
+      autorestart: true,
+      max_restarts: 50,
+      restart_delay: 3000,
+      env: {
+        NODE_ENV: 'development',
+      },
+    },
   ],
 };

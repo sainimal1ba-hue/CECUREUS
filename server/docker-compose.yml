@@ -1,0 +1,49 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cecureus-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - API_PORT=3000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=cecureus
+      - DB_USER=cecureus_user
+      - DB_PASSWORD=StrongRandomPasswordHere123!
+      - AUTH_TOKEN_SECRET=${AUTH_TOKEN_SECRET:-e7b4a2c9f13840e567bc821098de45a7c34b6892f01a75c43d89e12fa0b764cd321e90875a6c3f1b4d8205ec97b1a4365f80c213498ae76b501f298c47d3e651}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - SMSINTEGRA_UID=${SMSINTEGRA_UID:-cecureustrans}
+      - SMSINTEGRA_PASSWORD=${SMSINTEGRA_PASSWORD:-19125}
+      - SMSINTEGRA_LIVE_ENABLED=${SMSINTEGRA_LIVE_ENABLED:-false}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    container_name: cecureus-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: RootPasswordSecure123!
+      MYSQL_DATABASE: cecureus
+      MYSQL_USER: cecureus_user
+      MYSQL_PASSWORD: StrongRandomPasswordHere123!
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRootPasswordSecure123!"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mysql_data:
