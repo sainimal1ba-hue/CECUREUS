@@ -68,7 +68,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({ visible, onClose }) => {
   const initials = displayName
     .split(' ')
     .filter(Boolean)
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'GU';

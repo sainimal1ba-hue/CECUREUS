@@ -14,6 +14,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import {
   saveAuthToken,
   getAuthToken,
@@ -21,6 +22,9 @@ import {
   saveUserProfile,
   getUserProfile,
   removeUserProfile,
+  saveLastVerifiedAt,
+  getLastVerifiedAt,
+  removeLastVerifiedAt,
 } from '../services/storage';
 import { authApi, profileApi } from '../services/api';
 
@@ -39,6 +43,9 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isSessionUnverified: boolean;
+  sessionVerificationError: string | null;
+  retrySessionVerification: () => Promise<void>;
   login: (phone: string, password?: string) => Promise<void>;
   loginWithOtp: (identifier: string, code: string) => Promise<void>;
   continueAsGuest: () => Promise<void>;
@@ -62,90 +69,110 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSessionUnverified, setIsSessionUnverified] = useState<boolean>(false);
+  const [sessionVerificationError, setSessionVerificationError] = useState<string | null>(null);
 
-  // Initialize auth state on mount with strict token verification
-  useEffect(() => {
-    let isMounted = true;
+  // Verifies active session against backend session authority
+  const verifySession = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const storedToken = await getAuthToken();
+      const storedUser = await getUserProfile();
 
-    async function loadAuth() {
+      // Purge legacy demo tokens
+      if (
+        !storedToken ||
+        storedToken === 'demo_session_token_cecureus' ||
+        storedToken === 'guest_token' ||
+        storedUser?.id === 'usr_harsha_verma_demo'
+      ) {
+        await Promise.all([removeAuthToken(), removeUserProfile(), removeLastVerifiedAt()]);
+        setUser(null);
+        setToken(null);
+        setIsSessionUnverified(false);
+        setSessionVerificationError(null);
+        return;
+      }
+
+      // Verify active token against backend session authority
       try {
-        const storedToken = await getAuthToken();
-        const storedUser = await getUserProfile();
+        const profileData = await profileApi.getProfile();
 
-        if (!isMounted) return;
-
-        // Purge legacy demo tokens
-        if (
-          !storedToken ||
-          storedToken === 'demo_session_token_cecureus' ||
-          storedToken === 'guest_token' ||
-          storedUser?.id === 'usr_harsha_verma_demo'
-        ) {
-          await removeAuthToken();
-          await removeUserProfile();
-          if (isMounted) {
-            setUser(null);
-            setToken(null);
-          }
+        if (profileData?.profile) {
+          setToken(storedToken);
+          setUser(profileData.profile);
+          await saveUserProfile(profileData.profile);
+          await saveLastVerifiedAt(Date.now());
+          setIsSessionUnverified(false);
+          setSessionVerificationError(null);
+        } else {
+          // Unexpected response payload -> purge session
+          await Promise.all([removeAuthToken(), removeUserProfile(), removeLastVerifiedAt()]);
+          setUser(null);
+          setToken(null);
+          setIsSessionUnverified(false);
+          setSessionVerificationError(null);
+        }
+      } catch (apiErr: any) {
+        // 1. If server explicitly rejects token (401 Unauthorized or 403 Forbidden), purge session immediately
+        if (apiErr?.statusCode === 401 || apiErr?.statusCode === 403) {
+          await Promise.all([removeAuthToken(), removeUserProfile(), removeLastVerifiedAt()]);
+          setUser(null);
+          setToken(null);
+          setIsSessionUnverified(false);
+          setSessionVerificationError(null);
           return;
         }
 
-        // Verify active token against backend session authority
-        try {
-          const profileData = await profileApi.getProfile();
-          if (!isMounted) return;
+        // 2. Transport / Network failure. Check actual device connectivity:
+        const netState = await NetInfo.fetch();
+        const isDeviceDisconnected = netState.isConnected === false;
 
-          if (profileData?.profile) {
+        if (isDeviceDisconnected) {
+          // Phone has no network at all (airplane mode / Wi-Fi disconnected)
+          // Hard cap: Only trust cached session if verified within the last 12 hours
+          const lastVerified = await getLastVerifiedAt();
+          const MAX_OFFLINE_GRACE_PERIOD_MS = 12 * 60 * 60 * 1000;
+          const isWithinGrace = lastVerified && Date.now() - lastVerified < MAX_OFFLINE_GRACE_PERIOD_MS;
+
+          if (isWithinGrace && storedUser && storedToken) {
+            // Truly offline but within offline grace period
             setToken(storedToken);
-            setUser(profileData.profile);
-            await saveUserProfile(profileData.profile);
+            setUser(storedUser);
+            setIsSessionUnverified(false);
+            setSessionVerificationError(null);
           } else {
-            // Unexpected response payload -> purge session
-            await removeAuthToken();
-            await removeUserProfile();
+            // Offline grace expired -> force clean re-login
+            await Promise.all([removeAuthToken(), removeUserProfile(), removeLastVerifiedAt()]);
             setUser(null);
             setToken(null);
+            setIsSessionUnverified(false);
+            setSessionVerificationError(null);
           }
-        } catch (apiErr: any) {
-          // If server rejects token (401 Unauthorized or 403 Forbidden), purge session immediately
-          if (apiErr?.statusCode === 401 || apiErr?.statusCode === 403) {
-            await removeAuthToken();
-            await removeUserProfile();
-            if (isMounted) {
-              setUser(null);
-              setToken(null);
-            }
-          } else if (storedUser && storedToken) {
-            // Temporary offline/network glitch: retain local session if already verified before
-            if (isMounted) {
-              setToken(storedToken);
-              setUser(storedUser);
-            }
-          } else {
-            await removeAuthToken();
-            await removeUserProfile();
-            if (isMounted) {
-              setUser(null);
-              setToken(null);
-            }
-          }
-        }
-      } catch (error) {
-        if (isMounted) {
+        } else {
+          // Phone IS connected to the internet, but the CecureUs API server cannot be reached (Bug 1's case)!
+          // In compliance with Bug 2 instructions:
+          // DO NOT silently trust the cached user or present them as logged in!
+          setIsSessionUnverified(true);
+          setSessionVerificationError(
+            apiErr?.message || 'Unable to reach the CecureUs API server to verify your session.'
+          );
           setUser(null);
           setToken(null);
         }
-      } finally {
-        if (isMounted) setIsLoading(false);
       }
+    } catch (error) {
+      setUser(null);
+      setToken(null);
+      setIsSessionUnverified(false);
+    } finally {
+      setIsLoading(false);
     }
-
-    loadAuth();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
+
+  useEffect(() => {
+    verifySession();
+  }, [verifySession]);
 
   const login = useCallback(async (identifier: string, password?: string) => {
     setIsLoading(true);
@@ -224,6 +251,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       await saveAuthToken(authToken);
       await saveUserProfile(accountUser);
+      await saveLastVerifiedAt(Date.now());
+      setIsSessionUnverified(false);
+      setSessionVerificationError(null);
     } catch (error: any) {
       throw new Error(error.message || 'Registration failed. Please check your details and connection.');
     } finally {
@@ -254,6 +284,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         await saveAuthToken(authToken);
         await saveUserProfile(accountUser);
+        await saveLastVerifiedAt(Date.now());
+        setIsSessionUnverified(false);
+        setSessionVerificationError(null);
       } catch (error: any) {
         throw new Error(error.message || 'Registration failed. Please check your details and connection.');
       } finally {
@@ -274,7 +307,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 1. Instantly reset client state & purge storage (optimistic)
     setToken(null);
     setUser(null);
-    await Promise.all([removeAuthToken(), removeUserProfile()]);
+    setIsSessionUnverified(false);
+    setSessionVerificationError(null);
+    await Promise.all([removeAuthToken(), removeUserProfile(), removeLastVerifiedAt()]);
 
     // 2. Fire server revocation asynchronously in background (fire-and-forget)
     if (currentToken && currentToken !== 'guest_token') {
@@ -288,7 +323,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 1. Instantly reset client state & purge storage
     setToken(null);
     setUser(null);
-    await Promise.all([removeAuthToken(), removeUserProfile()]);
+    setIsSessionUnverified(false);
+    setSessionVerificationError(null);
+    await Promise.all([removeAuthToken(), removeUserProfile(), removeLastVerifiedAt()]);
 
     // 2. Fire backend account deletion asynchronously
     if (currentToken && currentToken !== 'guest_token') {
@@ -302,6 +339,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (response?.profile) {
         setUser(response.profile);
         await saveUserProfile(response.profile);
+        await saveLastVerifiedAt(Date.now());
       }
     } catch {
       // Keep existing state if refresh fails
@@ -314,7 +352,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         user,
         token,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && !isSessionUnverified,
+        isSessionUnverified,
+        sessionVerificationError,
+        retrySessionVerification: verifySession,
         login,
         loginWithOtp,
         continueAsGuest,

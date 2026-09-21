@@ -16,6 +16,7 @@ import { Platform } from 'react-native';
 
 const TOKEN_KEY = 'cecureus_auth_token';
 const USER_KEY = 'cecureus_user_profile';
+const LAST_VERIFIED_KEY = 'cecureus_last_verified_timestamp';
 
 // Memory fallback for environments without SecureStore
 const memoryStorage: Record<string, string> = {};
@@ -97,4 +98,20 @@ export async function getUserProfile(): Promise<any | null> {
 
 export async function removeUserProfile(): Promise<void> {
   await deleteSecureItem(USER_KEY);
+}
+
+// Session verification timestamp helpers
+export async function saveLastVerifiedAt(timestamp: number): Promise<void> {
+  await setSecureItem(LAST_VERIFIED_KEY, String(timestamp));
+}
+
+export async function getLastVerifiedAt(): Promise<number | null> {
+  const str = await getSecureItem(LAST_VERIFIED_KEY);
+  if (!str) return null;
+  const num = parseInt(str, 10);
+  return isNaN(num) ? null : num;
+}
+
+export async function removeLastVerifiedAt(): Promise<void> {
+  await deleteSecureItem(LAST_VERIFIED_KEY);
 }

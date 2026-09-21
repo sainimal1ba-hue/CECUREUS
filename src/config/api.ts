@@ -1,31 +1,28 @@
 /**
  * CECUREUS — Centralized Modular API Network Configuration
  *
- * Why this file was created:
- * In a distributed hybrid architecture (mobile clients on cellular/Wi-Fi and backend
- * hosted either via a Cloudflare Tunnel or a dedicated production VPS), hardcoding
- * localhost, 127.0.0.1, or local subnet IPs causes mobile socket connection failures
- * (such as Android ConnectException: Failed to connect to /127.0.0.1:3000).
+ * Why this file was updated:
+ * Previously, an unstable Cloudflare Quick Tunnel URL was hardcoded in this file,
+ * causing silent network failure on any Wi-Fi or cellular network when that ephemeral
+ * tunnel died.
  *
- * This module provides the single source of truth for the API base URL:
- * - Reads directly from process.env.EXPO_PUBLIC_API_URL.
- * - Switching from immediate Cloudflare Tunnel testing to a permanent dedicated VPS
- *   requires editing ONLY the single line in .env (no code changes needed):
- *
- *   Immediate Cloudflare Tunnel:
- *   EXPO_PUBLIC_API_URL=https://<your-tunnel-subdomain>.trycloudflare.com
- *
- *   Future Dedicated Server:
- *   EXPO_PUBLIC_API_URL=https://api.yourdomain.com
+ * This module now enforces best practices:
+ * 1. Strictly reads the primary API URL from `process.env.EXPO_PUBLIC_API_URL` in `.env`.
+ * 2. Zero hardcoded Quick Tunnel URLs in source code.
+ * 3. Provides clean fallbacks for local dev (web localhost and detected LAN IP).
+ * 4. Exposes runtime getters and inspection helpers for dev diagnostics.
  */
 
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-export const ACTIVE_CLOUDFLARE_TUNNEL = 'https://pressed-prompt-earliest-informed.trycloudflare.com';
-export const LOCAL_LAN_IP = '192.168.1.8';
 export const DEFAULT_PORT = 3000;
+// Current local LAN IP fallback (when testing locally on the same Wi-Fi)
+export const LOCAL_LAN_IP = '10.50.7.65';
 
+/**
+ * Extracts the dev machine host IP from Expo's Metro bundler hostUri.
+ */
 function getExpoHostIp(): string | null {
   const hostUri =
     Constants.expoConfig?.hostUri ||
@@ -44,42 +41,39 @@ function getExpoHostIp(): string | null {
   return null;
 }
 
+/**
+ * Resolves the active API base URL.
+ * Strictly prioritizes `EXPO_PUBLIC_API_URL` from `.env`.
+ */
 export function resolveConfiguredApiUrl(): string {
   const envUrl = (process.env.EXPO_PUBLIC_API_URL || '').trim();
 
-  // 1. If explicitly configured with an external/tunnel/production URL (non-localhost), use it directly
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+  // 1. Explicitly configured in .env (named tunnel, production domain, or local IP)
+  if (envUrl) {
     return envUrl.replace(/\/$/, '');
   }
 
-  // 2. On Web browsers, localhost is valid and connects to the developer machine
+  // 2. On Web browsers, localhost connects to dev server on current machine
   if (Platform.OS === 'web') {
-    return envUrl ? envUrl.replace(/\/$/, '') : `http://localhost:${DEFAULT_PORT}`;
+    return `http://localhost:${DEFAULT_PORT}`;
   }
 
-  // 3. On physical mobile devices (Android / iOS):
-  // "localhost" / "127.0.0.1" refers to the phone itself, causing socket ConnectException.
-  // Prioritize the active Cloudflare Tunnel (reachable across cellular 5G and Wi-Fi)
-  if (ACTIVE_CLOUDFLARE_TUNNEL) {
-    return ACTIVE_CLOUDFLARE_TUNNEL;
+  // 3. Fallback for physical mobile devices / emulators when EXPO_PUBLIC_API_URL is omitted:
+  // Dynamically resolve laptop LAN IP from Expo Metro hostUri or fallback to LOCAL_LAN_IP
+  const detectedHost = getExpoHostIp() || LOCAL_LAN_IP;
+  if (__DEV__) {
+    console.warn(
+      `[API Config] EXPO_PUBLIC_API_URL is not set in .env. Falling back to local LAN: http://${detectedHost}:${DEFAULT_PORT}`
+    );
   }
-
-  // 4. Fallback: extract the laptop LAN IP from Expo's Metro hostUri or fallback to local subnet
-  const host = getExpoHostIp() || LOCAL_LAN_IP;
-  return `http://${host}:${DEFAULT_PORT}`;
+  return `http://${detectedHost}:${DEFAULT_PORT}`;
 }
 
+/**
+ * Fallback URL logic — no hardcoded tunnels.
+ * Returns null unless an explicit secondary fallback is needed.
+ */
 export function getFallbackApiUrl(): string | null {
-  const current = resolveConfiguredApiUrl();
-  // If currently using Cloudflare tunnel, local Wi-Fi LAN IP is a high-speed local fallback
-  if (current.includes('trycloudflare.com')) {
-    const host = getExpoHostIp() || LOCAL_LAN_IP;
-    return `http://${host}:${DEFAULT_PORT}`;
-  }
-  // If currently using LAN IP, Cloudflare tunnel is the internet-wide fallback
-  if (ACTIVE_CLOUDFLARE_TUNNEL && !current.includes('trycloudflare.com')) {
-    return ACTIVE_CLOUDFLARE_TUNNEL;
-  }
   return null;
 }
 
@@ -88,4 +82,3 @@ export const API_BASE_URL = resolveConfiguredApiUrl();
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }
-

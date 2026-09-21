@@ -17,6 +17,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { NetworkErrorBanner } from '../components/ui/NetworkErrorBanner';
+import { DevApiBanner } from '../components/ui/DevApiBanner';
+import { UnverifiedSessionModal } from '../components/ui/UnverifiedSessionModal';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -70,6 +72,8 @@ export default function RootLayout() {
       <AuthProvider>
         <StatusBar style="dark" />
         <NetworkErrorBanner />
+        <DevApiBanner />
+        <UnverifiedSessionModal />
         <RootNavigator />
       </AuthProvider>
     </SafeAreaProvider>

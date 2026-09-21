@@ -137,11 +137,20 @@ export async function apiRequest<T = any>(
     }
   }
 
-  // If both failed to connect
+  // If request failed to connect
   if (!requestSucceeded || !response) {
-    networkEvents.notifyError('Unable to connect to CecureUs service. Please check your network connection.');
+    let errorMsg = 'Unable to reach the CecureUs server. Please check your connection or server status.';
+    try {
+      const netInfo = await import('@react-native-community/netinfo');
+      const state = await netInfo.default.fetch();
+      if (state.isConnected === false) {
+        errorMsg = 'No internet connection detected on your device. Please check your Wi-Fi or cellular network.';
+      }
+    } catch {}
+
+    networkEvents.notifyError(errorMsg);
     throw new ApiError(
-      'Unable to connect to CecureUs service. Please check your network connection.',
+      errorMsg,
       response?.status || 0,
       'NETWORK_ERROR'
     );

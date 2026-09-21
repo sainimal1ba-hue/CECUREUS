@@ -6,6 +6,7 @@
     "@expo-google-fonts/nunito": "^0.4.2",
     "@expo/ui": "~57.0.11",
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/netinfo": "12.0.1",
     "expo": "~57.0.13",
     "expo-constants": "~57.0.11",
     "expo-device": "~57.0.1",
