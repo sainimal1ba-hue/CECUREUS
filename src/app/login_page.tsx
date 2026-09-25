@@ -126,11 +126,12 @@ const checkCredentials = async () => {
         setShowPopup(true);
         console.log("password correct!");
         router.push({
-  pathname: "/Dashboard"});
-   params: {
-  userId: userId
-  token : data["token"]
-  }
+          pathname: "/Dashboard",
+          params: {
+            userId: userId,
+            token: data["token"],
+          },
+        });
       }
   }
     catch (error) {
