@@ -416,42 +416,71 @@ app.post('/login', async (req, res) => {
         statemessage = res ;
         console.log(res);
     }
-    else if (data["operation"]=== "Login"){
-        let passw = data["password"]// unhashed password from user
-        let sql_etv = `select  password_hash  from accounts where  user_id  = ?;`;
-        let sql_etb = `select  login_attempts  from accounts where  user_id  = ?;`;
-        let sql_eta = `update accounts set login_attempts = ? where user_id = ?;`;
-        let sql_session = `update accounts set session_created_at = NOW();`;
-        let sql_check_point = `update accounts set  login_attempts = 0 where session_created_at <= NOW() - INTERVAL 5 MINUTE;`;
-        let value_f = [data["userId"]];
-        const [rest_p] =  await db.execute(sql_etb,value_f);
+    else if (data["operation"] === "Login") {
+    let passw = data["password"]; // unhashed password from user
+
+    let sql_etv = `select password_hash from accounts where user_id = ?;`;
+    let sql_etb = `select login_attempts from accounts where user_id = ?;`;
+    let sql_eta = `update accounts set login_attempts = ? where user_id = ?;`;
+
+    const sql_session =
+        `UPDATE accounts SET session_created_at = NOW() WHERE user_id = ?;`;
+
+    let sql_check_point =
+        `update accounts set login_attempts = 0
+         where session_created_at <= NOW() - INTERVAL 5 MINUTE;`;
+
+    let value_f = [data["userId"]];
+
+    const [rest_p] = await db.execute(sql_etb, value_f);
+
+    // Check whether the user exists before accessing rest_p[0]
+    if (rest_p.length === 0) {
+        statemessage = "incorrect credentials";
+        condition = false;
+    } else {
         let rest_b = rest_p[0].login_attempts;
-        const [rest_r] =  await db.execute(sql_etv, value_f);
+
+        const [rest_r] = await db.execute(sql_etv, value_f);
+
         const bcrypt = require("bcrypt");
+
         const passwordMatches = await bcrypt.compare(
             passw,
-            rest_r[0].password_hash);
-      if (passwordMatches && rest_b < 5 ) {
-        console.log("Password correct"); 
-        token = generate_session_token();
-        statemessage = "logged in";
-        condition = true;
-        let value_g = [0,data["userId"]];
-        await db.execute(sql_eta,value_g);
-        await db.execute(sql_session);}
-    else if (rest_b >= 5){
-        console.log("rate_limiting!")
-        statemessage = "too many login attempts plz try again later"
-        condition = false;
-    }
-     else {
-        let value_d = [(rest_b + 1),data["userId"]];
-        await db.execute(sql_eta,value_d);
-        statemessage = "incorrect credentials";
-        condition = false ;
-        console.log("Password incorrect");}
+            rest_r[0].password_hash
+        );
 
+        if (passwordMatches && rest_b < 5) {
+            console.log("Password correct");
+
+            token = generate_session_token();
+            statemessage = "logged in";
+            condition = true;
+
+            let value_g = [0, data["userId"]];
+
+            await db.execute(sql_eta, value_g);
+            await db.execute(sql_session, [data["userId"]]);
+
+        } else if (rest_b >= 5) {
+            console.log("rate_limiting!");
+
+            statemessage = "too many login attempts plz try again later";
+            condition = false;
+
+        } else {
+            let value_d = [(rest_b + 1), data["userId"]];
+
+            await db.execute(sql_eta, value_d);
+
+            statemessage = "incorrect credentials";
+            condition = false;
+
+            console.log("Password incorrect");
+        }
     }
+}
+
     else if(data["operation"]==="generate_otp"){
         console.log(data);
         let return_result = await handlclient_phone_otp(data);
